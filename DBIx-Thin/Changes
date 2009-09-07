@@ -1,0 +1,6 @@
+Revision history for Perl extension DBIx::Thin.
+
+0.01  Mon Sep  7 23:00:01 2009
+	- original version; created by h2xs 1.23 with options
+		-X -A DBIx::Thin
+

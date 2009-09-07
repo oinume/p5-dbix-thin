@@ -1,0 +1,40 @@
+POD ##########################
+DBIx::Thin
+o DBIx::Thin::Accessor
+o DBIx::Thin::Driver
+o DBIx::Thin::Iterator
+o DBIx::Thin::Iterator::Arrayref
+o DBIx::Thin::Iterator::StatementHandle
+DBIx::Thin::Profiler
+DBIx::Thin::Row
+DBIx::Thin::Schema
+DBIx::Thin::Statement
+
+
+
+メソッド実装 #################
+do
+o create
+o create_by_sql
+create_all
+o update
+o update_by_sql
+o delete
+o delete_by_sql
+o delete_all
+o find
+o find_by_sql
+o find_all
+o find_all_by_sql
+find_all_with_page
+find_all_with_page_by_sql
+
+trigger実装 ###################
+before_create
+after_create
+before_update
+after_update
+before_delete
+after_delete
+
+inflate実装 ###################
