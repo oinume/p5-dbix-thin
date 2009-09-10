@@ -816,9 +816,16 @@ DBIx::Thin - Lightweight ORMapper
 
 Kazuhiro Oinuma C<< <oinume __at__ gmail.com> >>
 
+=head1 THANKS
+
+DBIx::Thin is based on L<DBIx::Skinny>'s code.
+thanks for nekokak.
+
+=cut
+
 =head1 REPOSITORY
 
-  git clone git://github.com/oinume/p5-DBIx-Skinny.git
+  git clone git://github.com/oinume/p5-dbix-thin.git
 
 =head1 LICENCE AND COPYRIGHT
 
