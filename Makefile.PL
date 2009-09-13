@@ -5,7 +5,7 @@ perl_version '5.005';
 all_from 'lib/DBIx/Thin.pm';
 
 requires 'Class::Accessor' => '0.25';
-requires 'DBI' => '1.40';
+requires 'DBI' => '1.38';
 requires 'UNIVERSAL::require';
 #requires 'Digest::SHA1';
 
