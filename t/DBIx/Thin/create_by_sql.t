@@ -14,10 +14,10 @@ my $user = $model->create_by_sql(
     'user',
     {
         sql => <<"SQL",
-INSERT INTO user (name, email, created_at)
- VALUES (?, ?, NOW())
+INSERT INTO user (name, email, created_at, updated_at)
+ VALUES (?, ?, ?, ?)
 SQL
-        bind => [ $name, $name . '@test.com' ],
+        bind => [ $name, $name . '@test.com', '0000-00-00 00:00:00', '0000-00-00 00:00:00' ],
     },
 );
 is($user->{name}, $name, 'create_by_sql');

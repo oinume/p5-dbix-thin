@@ -6,11 +6,14 @@ use Carp ();
 use FindBin::libs;
 use DBIx::Thin;
 
-# TODO: MySQL or SQLite or PostgreSQL setup
+my $dsn = $ENV{DBIX_THIN_DSN} || 'DBI:mysql:dbix_thin:localhost';
+my $username = $ENV{DBIX_THIN_USERNAME} || 'root';
+my $password = $ENV{DBIX_THIN_PASSWORD} || '';
+
 DBIx::Thin->setup({
-    dsn => 'DBI:mysql:dbix_thin:localhost',
-    username => 'root',
-    password => '',
+    dsn => $dsn,
+    username => $username,
+    password => $password,
     connect_options => {
         HandleError => sub { Carp::confess(shift) },
     },

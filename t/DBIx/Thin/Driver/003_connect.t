@@ -6,12 +6,12 @@ use Test::More qw/no_plan/;
 use Your::Model;
 
 my $model = Your::Model->new;
-my $dbh = $model->connect;
+my $dbh = $model->driver->connect;
 ok($dbh && $dbh->ping && $dbh->FETCH('Active'), 'connect');
 
 # failed to connect
 eval {
-    Your::Model->connect({
+    Your::Model->driver->connect({
         dsn => 'DBI:mysql:dbix_thin:localhost',
         username => 'anonuser',
         password => '',

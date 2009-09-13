@@ -8,9 +8,8 @@ use DBIx::Thin::Utils qw/check_required_args/;
 use base qw/DBIx::Thin::Driver/;
 
 sub last_insert_id {
-    my ($self, %args) = @_;
-    check_required_args([ qw/dbh sth/ ], \%args);
-    return $args{sth}->{mysql_insertid} || $args{sth}->{insertid};
+    my ($self, $sth, $opts) = @_;
+    return ($sth->{mysql_insertid} || $sth->{insertid});
 }
 
 sub sql_for_unixtime {
@@ -19,7 +18,7 @@ sub sql_for_unixtime {
 
 sub bulk_insert {
     # TODO: implement
-    my ($thin, $table, $args) = @_;
+    my ($self, $thin, $table, $args) = @_;
 
     my $schema = $thin->schema_class($table);
     my $inserted = 0;
@@ -27,7 +26,8 @@ sub bulk_insert {
     for my $arg (@{$args}) {
         # deflate
         for my $column (keys %{$arg}) {
-            $arg->{$column} = $schema->call_deflate($column, $arg->{$column});
+# TODO:
+            # $arg->{$column} = $schema->call_deflate($column, $arg->{$column});
         }
 
         if (scalar(@columns) == 0) {
@@ -38,7 +38,7 @@ sub bulk_insert {
 
         for my $column (keys %{$arg}) {
 # TODO: utf8_off
-            push @bind, $schema->utf8_off($column, $arg->{$column});
+#            push @bind, $schema->utf8_off($column, $arg->{$column});
         }
         $inserted++;
     }
@@ -49,7 +49,7 @@ sub bulk_insert {
     my $values = '(' . join(', ', ('?') x @columns) . ')' . "\n";
     $sql .= join(',', ($values) x (scalar(@bind) / scalar(@columns)));
 
-    $thin->profiler($sql, \@bind);
+    $thin->profile($sql, \@bind);
     $thin->execute_update($sql, \@bind);
 
     return $inserted;

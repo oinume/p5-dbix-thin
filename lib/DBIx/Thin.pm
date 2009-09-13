@@ -3,17 +3,19 @@ package DBIx::Thin;
 use strict;
 use warnings;
 use Carp qw/croak/;
-
-our $VERSION = '0.01';
-
 use DBI;
 use Storable ();
 use UNIVERSAL::require;
+use DBIx::Thin::Driver;
 use DBIx::Thin::Statement;
 use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Driver;
+
+our $VERSION = '0.01';
 
 sub import {
     strict->import;
+    warnings->import;
 }
 
 sub setup {
@@ -21,20 +23,16 @@ sub setup {
     my %args = %{ $args || {} };
 
     my $caller = caller;
-    my $driver = $class->create_driver(\%args);
+    my $driver = defined $args{driver} ?
+        delete $args{driver} : DBIx::Thin::Driver->create(\%args);
+#    use Data::Dumper;
+#    die Dumper $driver;;
     my $attributes = +{
-        dsn             => $args{dsn},
-        username        => $args{username},
-        password        => $args{password},
-        connect_options => $args{connect_options},
-        dbh             => $args{dbh} || undef,
         driver          => $driver,
         schemas         => {},
         profiler        => undef,
         profile_enabled => $ENV{DBIX_THIN_PROFILE} || 0,
         klass           => $caller,
-# TODO: deleted
-#        row_class_map   => +{},
         active_transaction => 0,
     };
 
@@ -87,18 +85,16 @@ sub new {
 
     my $driver   = delete $attr->{driver};
     my $profiler = delete $attr->{profiler};
-    my $dbh      = delete $attr->{dbh};
-    my $connect_options = delete $attr->{connect_options};
-
+    
     my $self = bless Storable::dclone($attr), $class;
+    my $driver_clone = $driver->clone;
     if ($connection_info) {
-        $self->connection_info($connection_info);
-        $self->reconnect;
-    } else {
-        $self->attributes->{driver} = $driver;
-        $self->attributes->{dbh} = $dbh;
-        $self->attributes->{connect_options} = $connect_options;
+        $driver_clone->connection_info($connection_info);
+        $driver_clone->reconnect;
+        # TODO: test
     }
+
+    $self->attributes->{driver} = $driver_clone;
     $self->attributes->{profiler} = $profiler;
 
     return $self;
@@ -110,6 +106,10 @@ sub schema_class {
     unless ($schema) {
         DBIx::Thin::Schema->require or croak $@;
         $schema = DBIx::Thin::Schema::table2schema_class($table);
+        unless ($schema) {
+            # TODO: test here
+            $schema = 'DBIx::Thin::Row';
+        }
         $class->attributes->{schemas}->{$table} = $schema;
         $schema->require or croak $@;
     }
@@ -118,110 +118,25 @@ sub schema_class {
 }
 
 sub profiler {
-    # TODO: profilerの出力確認
-    my ($class, $sql, $bind) = @_;
+    my ($class) = @_;
     my $attr = $class->attributes;
-
     unless ($attr->{profiler}) {
         DBIx::Thin::Profiler->require or croak $@;
         $attr->{profiler} = DBIx::Thin::Profiler->new;
     }
-    if ($attr->{profile_enabled} && $sql) {
-        $attr->{profiler}->record_query($sql, $bind);
-    }
-
     return $attr->{profiler};
 }
 
-sub connection_info {
-    my ($class, $connection_info) = @_;
-
+sub profile {
+    # TODO: profilerの出力確認
+    my ($class, $sql, $bind) = @_;
     my $attr = $class->attributes;
-    if (defined $connection_info) {
-        for my $key (qw/dsn username password connect_options/) {
-            $attr->{$key} = $connection_info->{$key};
-        }
-        $attr->{driver} = $class->create_driver($connection_info);
+    if ($attr->{profile_enabled} && $sql) {
+        $class->profiler->record_query($sql, $bind);
     }
-
-    return Storable::dclone $attr;
-}
-
-sub create_driver {
-    my ($class, $args) = @_;
-    my $type = '';
-    if ($args->{dbh}) {
-        $type = $args->{dbh}->{Driver}->{Name};
-    } elsif ($args->{dsn}) {
-        (undef, $type, undef) = DBI->parse_dsn($args->{dsn})
-            or croak "Failed to parse DSN: $args->{dsn}";
-    }
-
-    my %DRIVERS = (
-        mysql => 'MySQL',
-        sqlite => 'SQLite',
-        # TODO: PostgreSQL
-    );
-    unless ($DRIVERS{$type}) {
-        # suitable driver not found
-        DBIx::Thin::Driver->require or croak $@;
-        return DBIx::Thin::Driver->new;
-    }
-
-    my $driver = 'DBIx::Thin::Driver::' . $DRIVERS{$type};
-    $driver->require or croak $@;
-    return $driver->new;
-}
-
-sub connect {
-    my $class = shift;
-
-    if (@_ >= 1) {
-        $class->connection_info(@_);
-    }
-
-    my $attr = $class->attributes;
-    if ($attr->{dbh}) {
-        return $attr->{dbh};
-    }
-
-    $attr->{dbh} = DBI->connect(
-        $attr->{dsn},
-        $attr->{username},
-        $attr->{password},
-        {
-            RaiseError => 1,
-            PrintError => 0,
-            AutoCommit => 1,
-#            HandleError => sub { Carp::confess(shift) },
-            %{ $attr->{connect_options} || {} }
-        },
-    );
-
-    return $attr->{dbh};
-}
-
-sub reconnect {
-    my $class = shift;
-    $class->attributes->{dbh} = undef;
-    $class->connect(@_);
-}
-
-sub set_dbh {
-    my ($class, $dbh) = @_;
-    $class->attributes->{dbh} = $dbh;
 }
 
 sub driver { shift->attributes->{driver} }
-
-sub dbh {
-    my $class = shift;
-    my $dbh = $class->connect;
-    unless ($dbh && $dbh->FETCH('Active') && $dbh->ping) {
-        $dbh = $class->reconnect;
-    }
-    return $dbh;
-}
 
 ########################################
 # ORM update methods
@@ -265,14 +180,12 @@ sub create {
         join(', ', @columns),
         $placeholder,
     );
-    $class->profiler($sql, \@bind);
+    $class->profile($sql, \@bind);
 
-    my $sth = $class->execute_update($sql, \@bind);
-    my $last_insert_id = $class->driver->last_insert_id(
-        dbh => $class->dbh,
-        sth => $sth,
-    );
-    $class->close_sth($sth);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, \@bind);
+    my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
+    $driver->close_sth($sth);
 
     # set auto incremented value to %values
     my $pk = $schema->schema_info->{primary_key};
@@ -324,14 +237,12 @@ sub create_by_sql {
 #    }
 
     my ($sql, @bind) = ($args->{sql}, @{ $args->{bind} || []});
-    $class->profiler($sql, \@bind);
+    $class->profile($sql, \@bind);
 
-    my $sth = $class->execute_update($sql, \@bind);
-    my $last_insert_id = $class->driver->last_insert_id(
-        dbh => $class->dbh,
-        sth => $sth,
-    );
-    $class->close_sth($sth);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, \@bind);
+    my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
+    $driver->close_sth($sth);
 
     my $object = $schema->new;
     if ($args->{reselect_inserted_row}) {
@@ -351,10 +262,9 @@ sub create_by_sql {
 
 sub create_all {
     my ($class, $table, $values) = @_;
-    my $bulk_insert = $class->driver->can('bulk_insert')
-        or croak "driver doesn't provide bulk_insert method.";
-    my $inserted = $bulk_insert->($class, $table, $values);
-    return $inserted;
+    my $driver = $class->driver;
+    my $bulk_insert = $driver->can('bulk_insert');
+    return $bulk_insert->($driver, $class, $table, $values);
 }
 
 sub create_all_by_sql {
@@ -392,19 +302,21 @@ sub update {
     push @bind, @{ $statement->bind };
 
     my $sql = "UPDATE $table SET " . join(', ', @set) . ' ' . $statement->as_sql_where;
-    $class->profiler($sql, \@bind);
+    $class->profile($sql, \@bind);
 
-    my $sth = $class->execute_update($sql, \@bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, \@bind);
     my $rows = $sth->rows;
 # TODO:
 #    $class->call_schema_trigger('post_update', $schema, $table, $rows);
+    $driver->close_sth($sth);
 
     return $rows;
 }
 
 sub update_by_sql {
     my ($class, $sql, $bind, $opts) = @_;
-    $class->profiler($sql, $bind);
+    $class->profile($sql, $bind);
 
 # TODO: schema使う？
 #    my $table = $opts->{table};
@@ -415,9 +327,10 @@ sub update_by_sql {
 #    }
 #    my $schema = $class->schema_class($table);
 
-    my $sth = $class->execute_update($sql, $bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, $bind);
     my $updated = $sth->rows;
-    $class->close_sth($sth);
+    $driver->close_sth($sth);
 
     return $updated;
 }
@@ -435,13 +348,14 @@ sub delete {
     
     my $sql = "DELETE " . $statement->as_sql;
     my $bind = $statement->bind;
-    $class->profiler($sql, $bind);
-    my $sth = $class->execute_update($sql, $bind);
+    $class->profile($sql, $bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, $bind);
 
 #    $class->call_schema_trigger('post_delete', $schema, $table);
 
     my $deleted = $sth->rows;
-    $class->close_sth($sth);
+    $driver->close_sth($sth);
     
     return $deleted;
 }
@@ -457,13 +371,14 @@ sub delete_all {
     $class->add_wheres($statement, $where);
 
     my $sql = sprintf "DELETE %s", $statement->as_sql;
-    $class->profiler($sql, $statement->bind);
-    my $sth = $class->execute_update($sql, $statement->bind);
+    $class->profile($sql, $statement->bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, $statement->bind);
 
 #    $class->call_schema_trigger('post_delete_all', $schema, $table);
 
     my $deleted = $sth->rows;
-    $class->close_sth($sth);
+    $driver->close_sth($sth);
 
     return $deleted;
 }
@@ -472,34 +387,14 @@ sub delete_all {
 sub delete_by_sql {
     my ($class, $sql, $bind) = @_;
 
-    $class->profiler($sql, $bind);
-    my $sth = $class->execute_update($sql, $bind);
+    $class->profile($sql, $bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_update($sql, $bind);
 #    $class->call_schema_trigger('post_delete_by_sql', $schema, $table);
     my $deleted = $sth->rows;
-    $class->close_sth($sth);
+    $driver->close_sth($sth);
     
     return $deleted;
-}
-
-sub execute_update {
-    my ($class, $sql, $bind) = @_;
-
-    # TODO: doとどっちが速いかベンチを取る
-    my $sth;
-    eval {
-        $sth = $class->dbh->prepare($sql);
-        $sth->execute(@{ $bind || [] });
-    };
-    if ($@) {
-        $class->raise_error({
-            sth => $sth,
-            reason => "$@",
-            sql => $sql,
-            bind => $bind,
-        });
-    }
-
-    return $sth;
 }
 
 
@@ -517,19 +412,21 @@ sub find_by_sql {
     my ($class, $sql, $bind, $opts) = @_;
     check_select_sql($sql);
 
-    $class->profiler($sql, $bind);
-    my $sth = $class->execute_select($sql, $bind);
+    $class->profile($sql, $bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_select($sql, $bind);
     my $row = $sth->fetchrow_hashref;
     unless ($row) {
-        $class->close_sth($sth);
+        $driver->close_sth($sth);
         return undef;
     }
-    $class->close_sth($sth);
+    $driver->close_sth($sth);
 
     my $table = $opts->{table};
     unless (defined $table) {
         $table = $class->get_table($sql);
     }
+
     return $class->create_row_object($class->schema_class($table), $row);
 }
 
@@ -590,8 +487,8 @@ sub find_all_by_sql {
     my ($class, $sql, $bind, $opts) = @_;
     check_select_sql($sql);
 
-    $class->profiler($sql, $bind);
-    my $sth = $class->execute_select($sql, $bind);
+    $class->profile($sql, $bind);
+    my $sth = $class->driver->execute_select($sql, $bind);
 
     my $table = $opts->{table};
     unless (defined $table) {
@@ -611,31 +508,6 @@ sub find_all_with_paginator {
 
 sub find_all_with_paginator_by_sql {
     # TODO: implement
-}
-
-# TODO: delete
-#sub row_class {
-#    my ($class, $table) = @_;
-#
-#    my $attr = $class->attribute;
-#
-#    if ( $base_row_class eq 'DBIx::Skinny::Row' ) {
-#        return $class->_mk_anon_row_class($key, $base_row_class);
-#    } elsif ($base_row_class) {
-#        return $base_row_class;
-#    } elsif ($table) {
-#        my $tmp_base_row_class = join '::', $attr->{klass}, 'Row', _camelize($table);
-#        eval "use $tmp_base_row_class"; ## no critic
-#        if ($@) {
-#            $attr->{row_class_map}->{$table} = 'DBIx::Skinny::Row';
-#            return $class->_mk_anon_row_class($key, $attr->{row_class_map}->{$table});
-#        } else {
-#            $attr->{row_class_map}->{$table} = $tmp_base_row_class;
-#            return $tmp_base_row_class;
-#        }
-#    } else {
-#        return $class->_mk_anon_row_class($key, 'DBIx::Skinny::Row');
-#    }
 }
 
 sub create_row_object {
@@ -670,25 +542,6 @@ sub _camelize {
     join('', map{ ucfirst $_ } split(/(?<=[A-Za-z])_(?=[A-Za-z])|\b/, $s));
 }
 
-sub execute_select {
-    my ($class, $sql, $bind) = @_;
-    my $sth;
-    eval {
-        $sth = $class->dbh->prepare($sql);
-        $sth->execute(@{ $bind || [] });
-    };
-    if ($@) {
-        $class->raise_error({
-            sth => $sth,
-            reason => "$@",
-            sql => $sql,
-            bind => $bind,
-        });
-    }
-
-    return $sth;
-}
-
 
 sub placeholder {
     my $class = shift;
@@ -718,30 +571,6 @@ sub add_wheres {
 }
 
 
-sub raise_error {
-    my ($class, $args) = @_;
-    check_required_args([ qw/sth reason sql bind/ ], $args);
-
-    Data::Dumper->require or croak $@;
-    $args->{sth} && $class->close_sth($args->{sth});
-    my $sql = $args->{sql};
-    $sql =~ s/\n/\n          /gm;
-    croak(<<"EOS");
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@   DBIx::Thin's Error   @@@@@@@@
-Reason: $args->{reason}
-SQL   : $args->{sql}
-Bind  : @{[ Data::Dumper::Dumper($args->{bind}) ]}
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-EOS
-}
-
-sub close_sth {
-    my ($class, $sth) = @_;
-    $sth->finish;
-    undef $sth;
-}
-
 1;
 
 __END__
@@ -758,9 +587,9 @@ DBIx::Thin - Lightweight ORMapper
  package Your::Model;
  use DBIx::Thin;
  DBIx::Thin->setup(
-        dsn => 'dbi:SQLite:',
-        username => '',
-        password => '',
+     dsn => 'dbi:SQLite:',
+     username => '',
+     password => '',
  );
  1;
 
@@ -773,6 +602,7 @@ DBIx::Thin - Lightweight ORMapper
      primary_key 'id',
      columns qw/id name email/,
  };
+ 
  1;
  
  ### in your script:
