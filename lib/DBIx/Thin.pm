@@ -119,16 +119,18 @@ sub schema_class {
 
 sub profiler {
     my ($class) = @_;
+
     my $attr = $class->attributes;
-    unless ($attr->{profiler}) {
-        DBIx::Thin::Profiler->require or croak $@;
-        $attr->{profiler} = DBIx::Thin::Profiler->new;
+    if ($attr->{profiler}) {
+        return $attr->{profiler};
     }
+
+    DBIx::Thin::Profiler->require or croak $@;
+    $attr->{profiler} = DBIx::Thin::Profiler->new;
     return $attr->{profiler};
 }
 
 sub profile {
-    # TODO: profilerの出力確認
     my ($class, $sql, $bind) = @_;
     my $attr = $class->attributes;
     if ($attr->{profile_enabled} && $sql) {

@@ -20,21 +20,37 @@ sub reset {
 sub record_query {
     my ($self, $sql, $bind) = @_;
 
-    my $log = normalize_query($sql);
-    if (my $bind_value = join ', ', @{ $bind || [] } ) {
-        $log .= ' :binds ' . $bind_value;
-    }
-
+    my $log = sprintf(<<"EOS", normalize_sql($sql), normalize_bind($bind));
+%s
+#BIND: (%s)
+EOS
     push @{ $self->{query_logs} }, $log;
 }
 
-sub normalize_query {
+sub normalize_sql {
     my $sql = shift;
     $sql =~ s/^\s*//;
     $sql =~ s/\s*$//;
-    $sql =~ s/[\r\n]/ /g;
-    $sql =~ s/\s+/ /g;
+#    $sql =~ s/[\r\n]/ /g;
+#    $sql =~ s/\s+/ /g;
     return $sql;
+}
+
+sub normalize_bind {
+    my ($values) = @_;
+
+    unless (@{$values}) {
+        return '';
+    }
+
+    my $str = '';
+    for my $v (@{$values}) {
+        $str .= (defined $v) ? "'$v', " : "undef, ";
+    }
+    chop $str;
+    chop $str;
+
+    return $str;
 }
 
 'base code from DBIx::Skinny';
