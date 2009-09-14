@@ -247,8 +247,8 @@ sub create_by_sql {
     $driver->close_sth($sth);
 
     my $object = $schema->new;
-    if ($args->{reselect_inserted_row}) {
-        $object = $class->find_by_pk($last_insert_id);
+    if ($args->{fetch_inserted_row}) {
+        $object = $class->find_by_pk($table, $last_insert_id);
     }
 
 # TODO:

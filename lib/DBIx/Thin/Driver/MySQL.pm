@@ -28,6 +28,7 @@ sub bulk_insert {
         for my $column (keys %{$arg}) {
 # TODO:
             # $arg->{$column} = $schema->call_deflate($column, $arg->{$column});
+            $arg->{$column} = $schema->call_deflate($column, $arg->{$column});
         }
 
         if (scalar(@columns) == 0) {
@@ -38,7 +39,7 @@ sub bulk_insert {
 
         for my $column (keys %{$arg}) {
 # TODO: utf8_off
-#            push @bind, $schema->utf8_off($column, $arg->{$column});
+            push @bind, $schema->utf8_off($column, $arg->{$column});
         }
         $inserted++;
     }
@@ -50,7 +51,7 @@ sub bulk_insert {
     $sql .= join(',', ($values) x (scalar(@bind) / scalar(@columns)));
 
     $thin->profile($sql, \@bind);
-    $thin->execute_update($sql, \@bind);
+    $self->execute_update($sql, \@bind);
 
     return $inserted;
 }
