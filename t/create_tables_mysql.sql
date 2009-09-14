@@ -1,0 +1,12 @@
+DROP DATABASE IF EXISTS dbix_thin_test;
+CREATE DATABASE dbix_thin_test;
+USE dbix_thin_test;
+CREATE TABLE user (
+    id INT NOT NULL AUTO_INCREMENT,
+    name TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+    updated_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+    PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
