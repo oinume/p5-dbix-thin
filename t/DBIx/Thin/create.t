@@ -18,3 +18,6 @@ my $user = $model->create(
     },
 );
 is($user->{name}, $name, 'create');
+# check value of primary key
+ok($user->{$user->schema_info->{primary_key}}, 'create');
+
