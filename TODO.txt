@@ -10,13 +10,22 @@ DBIx::Thin::Row
 DBIx::Thin::Schema
 DBIx::Thin::Statement
 
+Test #########################
+DBIx::Thin
+  setup
+  new
+  driver
+
+DBIx::Thin::Driver
+  execute_select
+  execute_update
 
 
-メソッド実装 #################
-do
+
+Method implementation #################
 o create
 o create_by_sql
-create_all
+o create_all
 o update
 o update_by_sql
 o delete
@@ -29,7 +38,7 @@ o find_all_by_sql
 find_all_with_page
 find_all_with_page_by_sql
 
-trigger実装 ###################
+trigger ###################
 before_create
 after_create
 before_update
@@ -37,4 +46,4 @@ after_update
 before_delete
 after_delete
 
-inflate実装 ###################
+inflate ###################
