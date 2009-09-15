@@ -3,10 +3,10 @@ package DBIx::Thin;
 use strict;
 use warnings;
 use Carp qw/croak/;
-use DBI;
 use Storable ();
 use UNIVERSAL::require;
 use DBIx::Thin::Driver;
+use DBIx::Thin::Schema;
 use DBIx::Thin::Statement;
 use DBIx::Thin::Utils qw/check_required_args/;
 use DBIx::Thin::Driver;
@@ -34,6 +34,9 @@ sub setup {
         profile_enabled => $ENV{DBIX_THIN_PROFILE} || 0,
         klass           => $caller,
         active_transaction => 0,
+        # TODO: implement
+        # as_yaml_callback => sub {}
+        # as_json_callback => sub {}
     };
 
     {
@@ -104,7 +107,6 @@ sub schema_class {
     my ($class, $table) = @_;
     my $schema = $class->attributes->{schemas}->{$table};
     unless ($schema) {
-        DBIx::Thin::Schema->require or croak $@;
         $schema = DBIx::Thin::Schema::table2schema_class($table);
         unless ($schema) {
             # TODO: test here
@@ -174,7 +176,6 @@ sub create {
         push @bind, $schema->utf8_off($column, $values{$column});
     }
 
-    # TODO: INSERT or REPLACE. bind_param_attributes etc...
     chop(my $placeholder = ('?,' x @columns));
     my $sql = sprintf(
         "INSERT INTO %s\n (%s)\n VALUES(%s)",
@@ -190,9 +191,9 @@ sub create {
     $driver->close_sth($sth);
 
     # set auto incremented value to %values
-    my $pk = $schema->schema_info->{primary_key};
-    if ($pk) {
-        $values{$pk} = $last_insert_id;
+    my $primary_key = $schema->schema_info->{primary_key};
+    if ($primary_key) {
+        $values{$primary_key} = $last_insert_id;
     }
     my $object = $class->create_row_object($schema, \%values);
 
@@ -246,11 +247,9 @@ sub create_by_sql {
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
 
-    my $object = $schema->new;
-    if ($args->{fetch_inserted_row}) {
-        $object = $class->find_by_pk($table, $last_insert_id);
-    }
-
+    my $object = $args->{fetch_inserted_row} ?
+        $class->find_by_pk($table, $last_insert_id) : $schema->new;
+    
 # TODO:
 #    $schema->call_trigger(
 #        $class,
@@ -265,8 +264,12 @@ sub create_by_sql {
 sub create_all {
     my ($class, $table, $values) = @_;
     my $driver = $class->driver;
-    my $bulk_insert = $driver->can('bulk_insert');
-    return $bulk_insert->($driver, $class, $table, $values);
+    if (my $bulk_insert = $driver->can('bulk_insert')) {
+        return $bulk_insert->($driver, $class, $table, $values);
+    }
+    else {
+        croak "The driver doesn't have 'bulk_insert' method.";
+    }
 }
 
 sub create_all_by_sql {
@@ -509,6 +512,10 @@ sub find_all_with_paginator {
 }
 
 sub find_all_with_paginator_by_sql {
+    # TODO: implement
+}
+
+sub find_or_create {
     # TODO: implement
 }
 

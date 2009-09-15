@@ -9,10 +9,10 @@ use base qw/DBIx::Thin::Accessor/;
 sub new {
     my ($class, %args) = @_;
     my $self = bless { %args }, $class;
-    if ($self->{row_data}) {
-        my @select_columns = keys %{ $self->{row_data} };
+    if ($self->{_row_data}) {
+        my @select_columns = keys %{ $self->{_row_data} };
         if (@select_columns) {
-            $self->{select_columns} = \@select_columns;
+            $self->{_select_columns} = \@select_columns;
         }
     }
     return $self;
@@ -22,18 +22,18 @@ sub setup {
     my $self = shift;
     my $class = ref $self;
 
-    for my $alias (@{ $self->{select_columns} }) {
+    for my $alias (@{ $self->{_select_columns} }) {
         (my $col = lc $alias) =~ s/.+\.(.+)/$1/o;
         next if $class->can($col);
         no strict 'refs';
-        *{"$class\::$col"} = $self->_lazy_get_data($col);
+        *{"$class\::$col"} = $self->lazy_getter($col);
     }
 
     $self->{_get_column_cached} = {};
     $self->{_dirty_columns} = {};
 }
 
-sub _lazy_get_data {
+sub lazy_getter {
     my ($self, $col) = @_;
 
     return sub {
@@ -50,7 +50,7 @@ sub _lazy_get_data {
 sub get_column {
     my ($self, $col) = @_;
 
-    my $data = $self->{row_data}->{$col};
+    my $data = $self->{_row_data}->{$col};
 
     $data = $self->{thin}->schema->utf8_on($col, $data);
 
@@ -61,7 +61,7 @@ sub get_columns {
     my $self = shift;
 
     my %data = ();
-    for my $col ( @{$self->{select_columns}} ) {
+    for my $col ( @{$self->{_select_columns}} ) {
         $data{$col} = $self->get_column($col);
     }
     return \%data;
@@ -71,7 +71,7 @@ sub set {
     my ($self, $args) = @_;
 
     for my $col (keys %$args) {
-        $self->{row_data}->{$col} = $args->{$col};
+        $self->{_row_data}->{$col} = $args->{$col};
         delete $self->{_get_column_cached}->{$col};
         $self->{_dirty_columns}->{$col} = 1;
     }
@@ -86,51 +86,57 @@ sub get_dirty_columns {
 
 sub create {
     my $self = shift;
-    $self->{thin}->find_or_create($self->{opt_table_info}, $self->get_columns);
+# TODO: find_or_create
+    return $self->{thin}->find_or_create($self->{table}, $self->get_columns);
 }
 
 sub update {
     my ($self, $args, $table) = @_;
-    $table ||= $self->{opt_table_info};
+    unless ($table) {
+        $table = $self->{table};
+    }
     $args ||= $self->get_dirty_columns;
-    my $where = $self->_update_or_delete_cond($table);
+    my $where = $self->update_or_delete_condition($table);
     $self->set($args);
-    $self->{thin}->update($table, $args, $where);
+    return $self->{thin}->update($table, $args, $where);
 }
 
 sub delete {
     my ($self, $table) = @_;
-    $table ||= $self->{opt_table_info};
-    my $where = $self->_update_or_delete_cond($table);
-    $self->{thin}->delete($table, $where);
+    unless ($table) {
+        $table = $self->{table};
+    }
+    my $where = $self->update_or_delete_condition($table);
+    my $primary_key = $self->{thin}->schema_class($table)->schema_info->{primary_key};
+    return $self->{thin}->delete($table, $where->{$primary_key});
 }
 
-sub _update_or_delete_cond {
+sub update_or_delete_condion {
     my ($self, $table) = @_;
 
     unless ($table) {
         croak "no table info";
     }
 
-    my $schema_info = $self->{thin}->schema->schema_info;
-    unless ($schema_info) {
+    my $schema = $self->{thin}->schema_class($table);
+    unless ($schema) {
         croak "Unknown table: $table";
     }
 
-    # get target table pk
-    my $pk = $schema_info->{primary_key};
-    unless ($pk) {
+    # get target table primary_key
+    my $primary_key = $schema->schema_info->{primary_key};
+    unless ($primary_key) {
         croak "$table hs no primary key.";
     }
 
-    unless (grep { $pk eq $_ } @{ $self->{select_columns} }) {
+    unless (grep { $primary_key eq $_ } @{ $self->{_select_columns} }) {
         croak "can't get primary column in your query.";
     }
 
-    return { $pk => $self->$pk };
+    return { $primary_key => $self->$primary_key };
 }
 
-'base code from DBIx::Skinny::Row';
+1; # base code from DBIx::Skinny::Row
 
 __END__
 

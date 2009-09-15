@@ -261,7 +261,8 @@ Returns id of last inserted row.
 
 =cut
 sub last_insert_id {
-    croak "Must be implemented by sub-class.";
+    warn __PACKAGE__ . ": last_insert_id returns 0";
+    return 0;
 }
 
 =head2 sql_for_unixtime
