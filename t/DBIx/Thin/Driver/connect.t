@@ -8,6 +8,8 @@ use Your::Model;
 my $model = Your::Model->new;
 my $dbh = $model->driver->connect;
 ok($dbh && $dbh->ping && $dbh->FETCH('Active'), 'connect');
+is($model->driver->dbh, $dbh, 'dbh');
+is($model->driver->_dbh, $dbh, '_dbh');
 
 # call connect twice and check dbh is the same.
 my $dbh2 = $model->driver->connect;

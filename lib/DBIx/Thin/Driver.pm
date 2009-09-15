@@ -187,7 +187,6 @@ sub dbh {
     my ($self) = @_;
     my $dbh = $self->{dbh};
     unless ($dbh && $dbh->FETCH('Active') && $dbh->ping) {
-        # TODO: performance check
         $dbh = $self->reconnect;
     }
     return $dbh;
@@ -300,7 +299,7 @@ sub bulk_insert {
 
 sub raise_error {
     my ($class, $args) = @_;
-    check_required_args([ qw/reason sql bind/ ], $args);
+    check_required_args([ qw/reason sql/ ], $args);
 
     Data::Dumper->require or croak $@;
     $args->{sth} && $class->close_sth($args->{sth});
@@ -311,7 +310,7 @@ sub raise_error {
 @@@@@   DBIx::Thin's Error   @@@@
 Reason: $args->{reason}
 SQL   : $args->{sql}
-Bind  : @{[ Data::Dumper::Dumper($args->{bind}) ]}
+Bind  : @{[ Data::Dumper::Dumper($args->{bind} || []) ]}
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 EOS
 }
