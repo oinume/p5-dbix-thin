@@ -18,11 +18,17 @@ for my $i (0 .. 2) {
     };
 }
 
-$model->create_all('user', \@values);
+$model->create_all('user', data => \@values);
 
-my $user = $model->find('user', { name => 'find-0' });
+my $user = $model->find(
+    'user',
+    where => { name => 'find-0' }
+);
 is($user->email, 'find-0@test.com', 'find');
 
-my $user2 = $model->find('user', { name => 'not_exist' });
+my $user2 = $model->find(
+    'user',
+    where => { name => 'not_exist' }
+);
 ok(!$user2, 'find (not found)');
 

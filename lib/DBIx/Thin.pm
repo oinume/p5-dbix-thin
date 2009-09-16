@@ -9,7 +9,6 @@ use DBIx::Thin::Driver;
 use DBIx::Thin::Schema;
 use DBIx::Thin::Statement;
 use DBIx::Thin::Utils qw/check_required_args/;
-use DBIx::Thin::Driver;
 
 our $VERSION = '0.01';
 
@@ -146,13 +145,12 @@ sub driver { shift->attributes->{driver} }
 # ORM update methods
 ########################################
 sub create {
-    my ($class, $table, $values) = @_;
-    unless (defined $table) {
-        croak "Missing 1st argument 'table'";
-    }
-
+    my ($class, $table, %args) = @_;
+    check_table($table);
+    check_required_args([ qw/data/ ], \%args);
+    
     my $schema = $class->schema_class($table);
-    my %values = %{ $values || {} };
+    my %data = %{ $args{data} };
 
     # call trigger
 #    $class->call_schema_trigger('before_create', $schema, $table, $args);
@@ -165,15 +163,15 @@ sub create {
 #    );
     
     # deflate
-#    for my $column (keys %values) {
+#    for my $column (keys %data) {
 #        # TODO: interface
-#        $values{$column} = $schema->call_deflate($column, $values{$column});
+#        $data{$column} = $schema->call_deflate($column, $data{$column});
 #    }
 
     my (@columns, @bind);
-    for my $column (keys %values) {
+    for my $column (keys %data) {
         push @columns, $column;
-        push @bind, $schema->utf8_off($column, $values{$column});
+        push @bind, $schema->utf8_off($column, $data{$column});
     }
 
     chop(my $placeholder = ('?,' x @columns));
@@ -190,12 +188,12 @@ sub create {
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
 
-    # set auto incremented value to %values
+    # set auto incremented value to %data
     my $primary_key = $schema->schema_info->{primary_key};
     if ($primary_key) {
-        $values{$primary_key} = $last_insert_id;
+        $data{$primary_key} = $last_insert_id;
     }
-    my $object = $class->create_row_object($schema, \%values);
+    my $object = $class->create_row_object($schema, \%data);
 
 #    $schema->call_trigger(
 #        $class,
@@ -209,12 +207,13 @@ sub create {
 
 
 sub create_by_sql {
-    my ($class, $table, $args) = @_;
-
-    unless (defined $table) {
-        croak "Missing 1st argument 'table'";
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
+    my $table = $args{table};
+    unless ($table) {
+        $table = $class->get_table_insert($args{sql});
     }
-
+    
     my $schema = $class->schema_class($table);
 
     # call trigger
@@ -239,15 +238,15 @@ sub create_by_sql {
 #        push @bind, $schema->utf8_off($column, $values{$column});
 #    }
 
-    my ($sql, @bind) = ($args->{sql}, @{ $args->{bind} || []});
-    $class->profile($sql, \@bind);
+    my ($sql, $bind) = ($args{sql}, $args{bind} || []);
+    $class->profile($sql, $bind);
 
     my $driver = $class->driver;
-    my $sth = $driver->execute_update($sql, \@bind);
+    my $sth = $driver->execute_update($sql, $bind);
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
 
-    my $object = $args->{fetch_inserted_row} ?
+    my $object = $args{fetch_inserted_row} ?
         $class->find_by_pk($table, $last_insert_id) : $schema->new;
     
 # TODO:
@@ -262,10 +261,12 @@ sub create_by_sql {
 }
 
 sub create_all {
-    my ($class, $table, $values) = @_;
+    my ($class, $table, %args) = @_;
+    check_required_args([ qw/data/ ], \%args);
+    
     my $driver = $class->driver;
     if (my $bulk_insert = $driver->can('bulk_insert')) {
-        return $bulk_insert->($driver, $class, $table, $values);
+        return $bulk_insert->($driver, $class, $table, $args{data});
     }
     else {
         croak "The driver doesn't have 'bulk_insert' method.";
@@ -278,8 +279,10 @@ sub create_all_by_sql {
 
 
 sub update {
-    my ($class, $table, $args, $where) = @_;
-
+    my ($class, $table, %args) = @_;
+    check_table($table);
+    check_required_args([ qw/data where/ ], \%args);
+    
     my $schema = $class->schema_class($table);
 #    $class->call_schema_trigger('pre_update', $schema, $table, $args);
 
@@ -288,9 +291,10 @@ sub update {
 #        $args->{$col} = $schema->call_deflate($col, $args->{$col});
 #    }
 
+    my %data = %{ $args{data} };
     my (@set, @bind);
-    for my $column (sort keys %{ $args }) {
-        my $value = $args->{$column};
+    for my $column (sort keys %data) {
+        my $value = $data{$column};
         if (ref($value) eq 'SCALAR') {
             # for SCALARREF, dereference the value
             push @set, "$column = " . ${ $value };
@@ -303,7 +307,7 @@ sub update {
     }
 
     my $statement = $class->statement;
-    $class->add_wheres($statement, $where);
+    $class->add_wheres($statement, $args{where});
     push @bind, @{ $statement->bind };
 
     my $sql = "UPDATE $table SET " . join(', ', @set) . ' ' . $statement->as_sql_where;
@@ -320,11 +324,11 @@ sub update {
 }
 
 sub update_by_sql {
-    my ($class, $sql, $bind, $opts) = @_;
+    my ($class, $sql, $bind, $options) = @_;
     $class->profile($sql, $bind);
 
-# TODO: schema使う？
-#    my $table = $opts->{table};
+# TODO: need schema?
+#    my $table = $options->{table};
 #    unless (defined $table) {
 #        if ($sql =~ /^update\s+([\w]+)\s/i) {
 #            $table = $1;
@@ -366,19 +370,22 @@ sub delete {
 }
 
 sub delete_all {
-    my ($class, $table, $where) = @_;
+    my ($class, $table, %args) = @_;
+    check_required_args([ qw/where/ ], \%args);
+    
     my $schema = $class->schema_class($table);
 # TODO:
 #    $class->call_schema_trigger('pre_delete_all', $schema, $table, $where);
 
     my $statement = $class->statement;
     $statement->from([ $table ]);
-    $class->add_wheres($statement, $where);
+    $class->add_wheres($statement, $args{where});
 
     my $sql = sprintf "DELETE %s", $statement->as_sql;
-    $class->profile($sql, $statement->bind);
+    my $bind = $statement->bind;
+    $class->profile($sql, $bind);
     my $driver = $class->driver;
-    my $sth = $driver->execute_update($sql, $statement->bind);
+    my $sth = $driver->execute_update($sql, $bind);
 
 #    $class->call_schema_trigger('post_delete_all', $schema, $table);
 
@@ -407,16 +414,20 @@ sub delete_by_sql {
 # ORM select methods
 ########################################
 sub find {
-    my ($class, $table, $where, $opts) = @_;
-    $opts ||= {};
-    $opts->{limit} = 1;
-    return $class->find_all($table, $where, $opts)->first;
+    my ($class, $table, %args) = @_;
+    return $class->find_all(
+        $table,
+        where => $args{where},
+        options => { limit => 1 },
+    )->first;
 }
 
 sub find_by_sql {
-    my ($class, $sql, $bind, $opts) = @_;
-    check_select_sql($sql);
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
+    check_select_sql($args{sql});
 
+    my ($sql, $bind) = ($args{sql}, $args{bind} || []);
     $class->profile($sql, $bind);
     my $driver = $class->driver;
     my $sth = $driver->execute_select($sql, $bind);
@@ -427,7 +438,7 @@ sub find_by_sql {
     }
     $driver->close_sth($sth);
 
-    my $table = $opts->{table};
+    my $table = $args{table};
     unless (defined $table) {
         $table = $class->get_table($sql);
     }
@@ -436,27 +447,31 @@ sub find_by_sql {
 }
 
 sub find_by_pk {
-    my ($class, $table, $pk, $opts) = @_;
-    $opts ||= {};
-    $opts->{limit} = 1;
+    my ($class, $table, $pk) = @_;
     my $primary_key = $class->schema_class($table)->schema_info->{primary_key};
-    return $class->find_all($table, { $primary_key => $pk }, $opts)->first;
+    return $class->find_all(
+        $table,
+        where => { $primary_key => $pk },
+        options => { limit => 1 },
+    )->first;
 }
 
 sub find_all {
-    my ($class, $table, $where, $opts) = @_;
-
+    my ($class, $table, %args) = @_;
+    my $where = defined $args{where} ? $args{where} : {};
+    my $options = defined $args{options} ? $args{options} : {};
+    
     my $schema = $class->schema_class($table);
-    my $columns = $opts->{select} || $schema->schema_info->{columns};
+    my $columns = $options->{select} || $schema->schema_info->{columns};
     my $statement = $class->statement;
     $statement->select($columns);
     $statement->from([ $table ]);
 
-    $where && $class->add_wheres($statement, $where);
-    $opts->{limit} && $statement->limit($opts->{limit});
-    $opts->{offset} && $statement->limit($opts->{offset});
+    %{$where} && $class->add_wheres($statement, $where);
+    $options->{limit} && $statement->limit($options->{limit});
+    $options->{offset} && $statement->limit($options->{offset});
 
-    if (my $terms = $opts->{order_by}) {
+    if (my $terms = $options->{order_by}) {
         unless (ref($terms) eq 'ARRAY') {
             $terms = [ $terms ];
         }
@@ -475,7 +490,7 @@ sub find_all {
         $statement->order(\@orders);
     }
 
-    if (my $terms = $opts->{having}) {
+    if (my $terms = $options->{having}) {
         for my $column (keys %{ $terms }) {
             $statement->add_having($column => $terms->{$column});
         }
@@ -489,13 +504,13 @@ sub find_all {
 }
 
 sub find_all_by_sql {
-    my ($class, $sql, $bind, $opts) = @_;
+    my ($class, $sql, $bind, $options) = @_;
     check_select_sql($sql);
 
     $class->profile($sql, $bind);
     my $sth = $class->driver->execute_select($sql, $bind);
 
-    my $table = $opts->{table};
+    my $table = $options->{table};
     unless (defined $table) {
         $table = $class->get_table($sql);
     }
@@ -503,7 +518,8 @@ sub find_all_by_sql {
     DBIx::Thin::Iterator::StatementHandle->require or croak $@;
     return DBIx::Thin::Iterator::StatementHandle->new(
         sth => $sth,
-        object_class => $class->schema_class($table), # In DBIx::Thin, row_class is a schema.
+        # In DBIx::Thin, object_class is a schema class.
+        object_class => $class->schema_class($table),
     );
 }
 
@@ -536,6 +552,15 @@ sub get_table {
     if ($sql =~ /^.+from\s+([\w]+)\s/i) {
         return $1;
     }
+    croak "Failed to extract table name from SQL\n$sql";
+}
+
+sub get_table_insert {
+    my ($class, $sql) = @_;
+    if ($sql =~ /insert\s+into\s+([\w]+)\s/i) {
+        return $1;
+    }
+    # TODO: parse more exactly
     croak "Failed to extract table name from SQL\n$sql";
 }
 
@@ -579,6 +604,12 @@ sub add_wheres {
     }
 }
 
+sub check_table {
+    my ($table) = @_;
+    unless (defined $table) {
+        croak "Missing 1st argument 'table'";
+    }
+}
 
 1;
 
@@ -613,14 +644,16 @@ DBIx::Thin - Lightweight ORMapper
  };
  
  1;
- 
- ### in your script:
+
+ #-----------------------#
+ # in your script
+ #-----------------------#
  use Your::Model;
  
- # insert a record
+ ### insert a record
  my $row = Your::Model->create(
      'user',
-     {
+     data => {
          name => 'oinume',
          email => 'oinume_at_gmail.com',
      }
@@ -629,7 +662,8 @@ DBIx::Thin - Lightweight ORMapper
  ### select records
  my $iterator = Your::Model->find_all(
      'user',
-     { name => 'oinume' },
+     where => { name => 'oinume' },
+     options => { limit => 20 }
  );
  while (my $row = $iterator->next) {
      ...
@@ -638,19 +672,23 @@ DBIx::Thin - Lightweight ORMapper
  ### update records
  Your::Model->update(
      'user',
-     # data
-     { name => 'new_user' },
-     # where
-     { name => 'oinume' }
+     data => { name => 'new_user' },
+     where => { name => 'oinume' }
  );
 
  ### delete records
  Your::Model->delete_all(
      'user',
      # where
-     { name => 'new_user' }
+     where => { name => 'new_user' }
  );
- 
+
+ ### delete a record
+ Your::Model->delete(
+     'user',
+     10, # primary key
+ );
+
 =head1 AUTHOR
 
 Kazuhiro Oinuma C<< <oinume __at__ gmail.com> >>

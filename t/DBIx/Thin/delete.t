@@ -20,7 +20,7 @@ for my $i (0 .. 2) {
 
 my $user = $model->create(
     'user',
-    {
+    data => {
         name => 'delete-0',
         email => 'delete-0@test.com',
     }

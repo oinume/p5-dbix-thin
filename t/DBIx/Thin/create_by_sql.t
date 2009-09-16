@@ -11,14 +11,11 @@ my $model = Your::Model->new;
 my $counter = 0;
 my $name = 'create_by_sql-' . $counter++;
 my $user = $model->create_by_sql(
-    'user',
-    {
-        sql => <<"SQL",
+    sql => <<"SQL",
 INSERT INTO user (name, email, created_at, updated_at)
  VALUES (?, ?, ?, ?)
 SQL
-        bind => [ $name, $name . '@test.com', '0000-00-00 00:00:00', '0000-00-00 00:00:00' ],
-        fetch_inserted_row => 1,
-    },
+    bind => [ $name, $name . '@test.com', '0000-00-00 00:00:00', '0000-00-00 00:00:00' ],
+    fetch_inserted_row => 1,
 );
 is($user->{name}, $name, 'create_by_sql');

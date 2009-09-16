@@ -18,15 +18,16 @@ for my $i (0 .. 2) {
     };
 }
 
-$model->create_all('user', \@values);
+$model->create_all('user', data => \@values);
 my $updated_count = $model->update(
     'user',
-    { # columns
+    data => {
         name => 'name was updated',
         email => 'updated@test.com',
     },
-    { # where
+    where => {
         name => 'update-0',
     },
 );
 is($updated_count, 1, 'update');
+

@@ -17,16 +17,16 @@ for my $i (0 .. 2) {
         email => $name . '@test.com',
     };
 }
-$model->create_all('user', \@values);
+$model->create_all('user', data => \@values);
 
 my $user = $model->find_by_sql(
-    "SELECT * FROM user WHERE name LIKE ?",
-    [ '%find_by_sql-0%' ],
+    sql => "SELECT * FROM user WHERE name LIKE ?",
+    bind => [ '%find_by_sql-0%' ],
 );
 is($user->email, 'find_by_sql-0@test.com', 'find_by_sql');
 
 my $user2 = $model->find_by_sql(
-    "SELECT * FROM user WHERE name = ?",
-    [ 'not_exist' ],
+    sql => "SELECT * FROM user WHERE name = ?",
+    bind => [ 'not_exist' ],
 );
 ok(!$user2, 'find_by_sql (not found)');

@@ -10,14 +10,17 @@ my $model = Your::Model->new;
 
 my $counter = 0;
 my @values = ();
+for my $i (0 .. 2) {
+    my $name = 'find_all-' . $counter++;
+    push @values, {
+        name => $name,
+        email => $name . '@test.com',
+    };
+}
+$model->create_all('user', data => \@values);
 
-my $name = 'find_by_pk-0';
-my $user = $model->create(
+my $iterator = $model->find_all(
     'user',
-    {
-        name => $name, email => $name . '@test.com'
-    }
+    where => { name => { op => 'LIKE', value => '%find_all%' } }
 );
-
-my $actual = $model->find_by_pk('user', $user->id);
-is($user->email, $actual->email, 'find_by_pk');
+ok($iterator->size >= 3, 'find_all');

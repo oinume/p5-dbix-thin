@@ -12,7 +12,7 @@ my $counter = 0;
 my $name = 'create-' . $counter++;
 my $user = $model->create(
     'user',
-    {
+    data => {
         name => $name,
         email => $name . '@test.com',
     },
