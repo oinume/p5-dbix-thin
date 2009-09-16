@@ -141,6 +141,7 @@ sub profile {
 
 sub driver { shift->attributes->{driver} }
 
+
 ########################################
 # ORM update methods
 ########################################
@@ -209,7 +210,9 @@ sub create {
 sub create_by_sql {
     my ($class, %args) = @_;
     check_required_args([ qw/sql/ ], \%args);
-    my $table = $args{table};
+
+    my $options = $args{options} || {};
+    my $table = $options->{table};
     unless ($table) {
         $table = $class->get_table_insert($args{sql});
     }
@@ -246,7 +249,8 @@ sub create_by_sql {
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
 
-    my $object = $args{fetch_inserted_row} ?
+    # TODO: rename arg
+    my $object = $options->{fetch_inserted_row} ?
         $class->find_by_pk($table, $last_insert_id) : $schema->new;
     
 # TODO:
@@ -324,7 +328,11 @@ sub update {
 }
 
 sub update_by_sql {
-    my ($class, $sql, $bind, $options) = @_;
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
+    
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind}, $args{options});
+    $options ||= {};
     $class->profile($sql, $bind);
 
 # TODO: need schema?
@@ -679,15 +687,12 @@ DBIx::Thin - Lightweight ORMapper
  ### delete records
  Your::Model->delete_all(
      'user',
-     # where
      where => { name => 'new_user' }
  );
 
- ### delete a record
- Your::Model->delete(
-     'user',
-     10, # primary key
- );
+ ### delete a record by primary key
+ Your::Model->delete('user', 10);
+
 
 =head1 AUTHOR
 
