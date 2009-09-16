@@ -6,6 +6,11 @@ use Carp qw/croak/;
 
 use base qw/DBIx::Thin::Accessor/;
 
+# TODO: implement
+# key => value のデータをオブジェクトに直接保存する
+# getterのアクセサをフックしてどうにかする
+# 
+
 sub new {
     my ($class, %args) = @_;
     my $self = bless { %args }, $class;
@@ -25,8 +30,11 @@ sub setup {
     for my $alias (@{ $self->{_select_columns} }) {
         (my $col = lc $alias) =~ s/.+\.(.+)/$1/o;
         next if $class->can($col);
-        no strict 'refs';
-        *{"$class\::$col"} = $self->lazy_getter($col);
+        {
+            no strict 'refs';
+            no warnings 'redefine';
+            *{"$class\::$col"} = $self->lazy_getter($col);
+        }
     }
 
     $self->{_get_column_cached} = {};

@@ -221,44 +221,45 @@ DBIx::Thin::Schema - Schema DSL for DBIx::Thin
 
 =head1 SYNOPSIS
 
-    package Your::Model;
+  package Your::Model;
 
-    use DBIx::Skinny setup => +{
-        dsn => 'dbi:SQLite:',
-        username => '',
-        password => '',
-    };
-    1;
-    
-    package YourProject:Model::Schema:
-    use DBIx::Thin::Schema;
-    
-    install_utf8_columns qw/name/; # for utf8 columns
-    
-    # set user table schema settings
-    install_table user => schema {
-        pk 'id';
-        columns qw/id name created_at/;
+  use DBIx::Thin;
+  DBIx::Thin->setup({
+      dsn => 'dbi:SQLite:',
+      username => 'root',
+      password => '',
+  });
+  
+  1;
+  
+  package Your::Model::Schema:
+  use DBIx::Thin::Schema;
+  
+  # set user table schema settings
+  install_table user => schema {
+      primary_key 'id';
+      columns qw/id name created_at/;
 
-        trigger pre_insert => callback {
-            # hook
-        };
+      trigger pre_insert => callback {
+          # hook
+      };
 
-        trigger pre_update => callback {
-            # hook
-        };
-    };
-
-    install_inflate_rule '^name$' => callback {
-        inflate {
-            my $value = shift;
-            # inflate hook
-        };
-        deflate {
-            my $value = shift;
-            # deflate hook
-        };
-    };
-    
-    1;
+      trigger pre_update => callback {
+          # hook
+      };
+  };
+  
+  # TODO: not implemented yet
+  install_inflate_rule '^name$' => callback {
+      inflate {
+          my $value = shift;
+          # inflate hook
+      };
+      deflate {
+          my $value = shift;
+          # deflate hook
+      };
+  };
+  
+  1;
 
