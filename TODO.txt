@@ -28,6 +28,7 @@ o create_by_sql
 o create_all
 o update
 o update_by_sql
+update_or_create
 o delete
 o delete_by_sql
 o delete_all
@@ -35,8 +36,8 @@ o find
 o find_by_sql
 o find_all
 o find_all_by_sql
-find_all_with_page
-find_all_with_page_by_sql
+find_all_with_pagenator
+find_all_with_pagenator_by_sql
 
 trigger ###################
 before_create
@@ -47,3 +48,6 @@ before_delete
 after_delete
 
 inflate ###################
+
+deflate ###################
+

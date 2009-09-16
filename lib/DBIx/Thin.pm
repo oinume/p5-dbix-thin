@@ -352,6 +352,11 @@ sub update_by_sql {
     return $updated;
 }
 
+sub update_or_create {
+    # TODO: implement
+}
+
+
 sub delete {
     my ($class, $table, $primary_key_value) = @_;
     my $schema = $class->schema_class($table);
