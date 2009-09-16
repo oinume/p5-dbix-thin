@@ -287,7 +287,7 @@ sub bulk_insert {
     my $inserted = 0;
     for my $arg ( @{$args} ) {
 # TODO: adjust trigger
-        $thin->create($table, $arg);
+        $thin->create($table, data => $arg);
         $inserted++;
     }
 

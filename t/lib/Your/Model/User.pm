@@ -16,8 +16,9 @@ CREATE TABLE user (
 
 =cut
 install_table 'user' => schema {
-    primary_key 'id',
-    columns qw/id name email created_at updated_at/,
+    primary_key 'id';
+    columns qw/id name email created_at updated_at/;
+    install_utf8_columns qw/name/;
 };
 
 1;

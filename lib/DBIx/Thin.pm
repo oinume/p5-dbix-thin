@@ -24,8 +24,6 @@ sub setup {
     my $caller = caller;
     my $driver = defined $args{driver} ?
         delete $args{driver} : DBIx::Thin::Driver->create(\%args);
-#    use Data::Dumper;
-#    die Dumper $driver;;
     my $attributes = +{
         driver          => $driver,
         schemas         => {},

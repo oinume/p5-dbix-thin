@@ -65,7 +65,6 @@ sub install_table ($$) {
 
     my $class = _get_caller_class;
 #warn "caller class: $class\n";
-
     $class->schema_info->{installing_table} = $table;
     $install_code->();
     $table2schema_class{$table} = $class;
@@ -76,22 +75,12 @@ sub schema (&) { shift }
 
 sub primary_key ($) {
     my $column = shift;
-
-    my $class = _get_caller_class;
-#    $class->schema_info->{
-#        $class->schema_info->{installing_table}
-#    }->{primary_key} = $column;
-    $class->schema_info->{primary_key} = $column;
+    _get_caller_class()->schema_info->{primary_key} = $column;
 }
 
 sub columns (@) {
     my @columns = @_;
-
-    my $class = _get_caller_class;
-#    $class->schema_info->{
-#        $class->schema_info->{installing_table}
-#    }->{columns} = \@columns;
-    $class->schema_info->{columns} = \@columns;
+    _get_caller_class()->schema_info->{columns} = \@columns;
 }
 
 sub trigger ($$) {
@@ -128,7 +117,7 @@ sub install_inflate_rule ($$) {
 }
 
 sub inflate (&) {
-    my $code = shift;    
+    my $code = shift;
 
     my $class = _get_caller_class;
     $class->inflate_rules->{
@@ -173,35 +162,35 @@ sub callback (&) { shift }
 
 sub install_utf8_columns (@) {
     my @columns = @_;
-
     my $class = _get_caller_class;
-    for my $col (@columns) {
-        $class->utf8_columns->{$col} = 1;
+    for my $column (@columns) {
+        $class->utf8_columns->{$column} = 1;
     }
 }
 
 sub is_utf8_column {
-    my ($class, $col) = @_;
-    return $class->utf8_columns->{$col} ? 1 : 0;
+    my ($class, $column) = @_;
+    return $class->utf8_columns->{$column} ? 1 : 0;
 }
 
 sub utf8_on {
-    my ($class, $col, $data) = @_;
+    my ($class, $column, $data) = @_;
 
-    if ( $class->is_utf8_column($col) ) {
+    if ($class->is_utf8_column($column)) {
         if ($] <= 5.008000) {
             Encode::_utf8_on($data) unless Encode::is_utf8($data);
         } else {
             utf8::decode($data) unless utf8::is_utf8($data);
         }
     }
+
     return $data;
 }
 
 sub utf8_off {
-    my ($class, $col, $data) = @_;
+    my ($class, $column, $data) = @_;
 
-    if ( $class->is_utf8_column($col) ) {
+    if ($class->is_utf8_column($column)) {
         if ($] <= 5.008000) {
             Encode::_utf8_off($data) if Encode::is_utf8($data);
         } else {
