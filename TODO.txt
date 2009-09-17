@@ -11,33 +11,27 @@ DBIx::Thin::Schema
 DBIx::Thin::Statement
 
 Test #########################
-DBIx::Thin
-  setup
-  new
-  driver
-
-DBIx::Thin::Driver
-  execute_select
-  execute_update
-
+# DBIx::Thin
+setup
+new
+driver
 
 
 Method implementation #################
-o create
-o create_by_sql
-o create_all
-o update
-o update_by_sql
 update_or_create
-o delete
-o delete_by_sql
-o delete_all
-o find
-o find_by_sql
-o find_all
-o find_all_by_sql
+delete_by_sql
 find_all_with_pagenator
 find_all_with_pagenator_by_sql
+setup
+compile(for mod_perl?)
+load_schema
+
+# DBIx::Thin::Row
+update
+delete
+whole interface and data structures
+
+utf8 handling #############
 
 trigger ###################
 before_create
@@ -51,3 +45,7 @@ inflate ###################
 
 deflate ###################
 
+transcation ###############
+$model->start_transaction->do {
+    ...
+}
