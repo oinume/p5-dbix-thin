@@ -6,10 +6,11 @@ all_from 'lib/DBIx/Thin.pm';
 
 requires 'Class::Accessor' => '0.25';
 requires 'DBI' => '1.38';
+requires 'File::Spec';
 requires 'UNIVERSAL::require';
 #requires 'Digest::SHA1';
 
-#author_tests('xt');
+author_tests('xt');
 
 build_requires 'Test::More' => '0.42';
 build_requires 'FindBin::libs';
