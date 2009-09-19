@@ -18,5 +18,6 @@ DBIx::Thin->setup({
         HandleError => sub { Carp::confess(shift) },
     },
 });
+DBIx::Thin->load_schema;
 
 1;

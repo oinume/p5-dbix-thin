@@ -4,7 +4,6 @@ use FindBin::libs;
 use Test::Utils;
 use Test::More qw/no_plan/;
 use Your::Model;
-use Your::Model::User;
 
 my $model = Your::Model->new;
 

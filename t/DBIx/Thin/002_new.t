@@ -8,4 +8,3 @@ use Your::Model;
 my $model = Your::Model->new;
 is($model->{klass}, 'Your::Model', 'new');
 
-use Data::Dumper;

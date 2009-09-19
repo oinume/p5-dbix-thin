@@ -3,6 +3,8 @@ package DBIx::Thin;
 use strict;
 use warnings;
 use Carp qw/croak/;
+use File::Basename qw/basename dirname/;
+use File::Spec;
 use Storable ();
 use UNIVERSAL::require;
 use DBIx::Thin::Driver;
@@ -54,29 +56,51 @@ sub setup {
     }
 }
 
-sub load_schema {
-    my ($class, $args) = @_;
-    my $caller = caller;
-    $caller =~ s!::!/!g;
-    my $caller_pm = $caller . ".pm";
-    if ($INC{$caller_pm}) {
-        # TODO: dir
+
+sub load_schemas {
+    my ($class, %args) = @_;
+    # schema_directory must be 'lib/Your/Model' for lib/Your/Model.pm
+    my $schema_directory = $args{schema_directory};
+    unless (defined $schema_directory) {
+        # if schema_directory is not given, we'll find it from caller module
+        my $caller = caller;
+        $caller =~ s!::!/!g;
+        my $caller_pm = $caller . ".pm";
+        my $caller_file = $INC{$caller_pm};
+        unless (defined $caller_file) {
+            return;
+        }
+        
+        my $caller_base_dir = dirname($caller_file);
+        my $caller_dir = basename($caller_file, ".pm");
+        $schema_directory = File::Spec->catdir($caller_base_dir, $caller_dir);
     }
-=pod
 
-kazuhiro@geneva % perl -MData::Dumper -e 'print Dumper \%INC'
-$VAR1 = {
-          'warnings/register.pm' => '/usr/share/perl/5.10/warnings/register.pm',
-          'bytes.pm' => '/usr/share/perl/5.10/bytes.pm',
-          'XSLoader.pm' => '/usr/lib/perl/5.10/XSLoader.pm',
-          'Carp.pm' => '/usr/share/perl/5.10/Carp.pm',
-          'Exporter.pm' => '/usr/share/perl/5.10/Exporter.pm',
-          'warnings.pm' => '/usr/share/perl/5.10/warnings.pm',
-          'overload.pm' => '/usr/share/perl/5.10/overload.pm',
-          'Data/Dumper.pm' => '/usr/lib/perl/5.10/Data/Dumper.pm'
-        };
+    my @dir_parts = File::Spec->splitdir($schema_directory);
+    my $after_lib_dir = 0;
+    my @required_dir_parts = ();
+    for my $dir_part (@dir_parts) {
+        if ($dir_part eq 'lib' || $dir_part eq 'pm') {
+            $after_lib_dir = 1;
+        }
+        elsif ($after_lib_dir) {
+            push @required_dir_parts, $dir_part;
+        }
+    }
 
-=cut
+    my @schemas = ();
+    opendir my $dh, $schema_directory or croak "$schema_directory: $!";
+    while (my $file = readdir $dh) {
+        next if $file =~ /^\.{1,2}$/;
+        my $schema = File::Spec->catfile(@required_dir_parts, basename($file, ".pm"));
+        $schema =~ s!/!::!g;
+        push @schemas, $schema;
+    }
+    closedir $dh;
+
+    for my $schema (@schemas) {
+        $schema->require or croak $@;
+    }
 }
 
 sub new {
