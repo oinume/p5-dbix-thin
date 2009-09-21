@@ -21,7 +21,6 @@ sub import {
 
 sub setup {
     my ($class, %args) = @_;
-#    my %args = %{ $args || {} };
 
     my $caller = caller;
     my $driver = defined $args{driver} ?
@@ -627,12 +626,15 @@ DBIx::Thin - Lightweight ORMapper
 
  ### Your/Model.pm
  package Your::Model;
+ 
  use DBIx::Thin;
+ 
  DBIx::Thin->setup(
-     dsn => 'dbi:SQLite:',
+     dsn => 'dbi:SQLite:your_project.sqlite3',
      username => '',
      password => '',
  );
+ 
  1;
 
  ### Your/Model/User.pm
@@ -642,7 +644,11 @@ DBIx::Thin - Lightweight ORMapper
  
  install_table 'user' => schema {
      primary_key 'id',
-     columns qw/id name email/,
+     defaults string_is_utf8 => 1;
+     columns 
+         id    => { type => Integer },
+         name  => { type => String },
+         email => { type => String, utf8 => 0 };
  };
  
  1;
@@ -684,7 +690,7 @@ DBIx::Thin - Lightweight ORMapper
      where => { name => 'new_user' }
  );
 
- ### delete a record by primary key
+ ### delete a record with primary key
  Your::Model->delete('user', 10);
 
 
