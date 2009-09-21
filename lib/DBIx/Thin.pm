@@ -20,8 +20,8 @@ sub import {
 }
 
 sub setup {
-    my ($class, $args) = @_;
-    my %args = %{ $args || {} };
+    my ($class, %args) = @_;
+#    my %args = %{ $args || {} };
 
     my $caller = caller;
     my $driver = defined $args{driver} ?
@@ -238,30 +238,7 @@ sub create_by_sql {
     unless ($table) {
         $table = $class->get_table_insert($args{sql});
     }
-    
     my $schema = $class->schema_class($table);
-
-    # call trigger
-# TODO:
-#    $schema->call_trigger(
-#        $class,
-#        table => $table,
-#        trigger_name => 'before_create',
-#        trigger_args => \%values,
-#    );
-    
-    # deflate
-#    for my $column (keys %values) {
-#        # TODO: interface
-#        $values{$column} = $schema->call_deflate($column, $values{$column});
-#    }
-
-# TODO: utf8_off
-#    my (@columns, @bind);
-#    for my $column (keys %args) {
-#        push @columns, $column;
-#        push @bind, $schema->utf8_off($column, $values{$column});
-#    }
 
     my ($sql, $bind) = ($args{sql}, $args{bind} || []);
     $class->profile($sql, $bind);
@@ -271,17 +248,8 @@ sub create_by_sql {
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
 
-    # TODO: rename arg
-    my $object = $options->{fetch_inserted_row} ?
+    my $object = $options->{fetch_created_row} ?
         $class->find_by_pk($table, $last_insert_id) : $schema->new;
-    
-# TODO:
-#    $schema->call_trigger(
-#        $class,
-#        table => $table,
-#        trigger_name => 'after_create',
-#        trigger_args => $object,
-#    );
 
     return $object;
 }
@@ -327,8 +295,7 @@ sub update {
         } else {
             push @set, "$column = ?";
             push @bind, $value;
-# TODO:
-#            push @bind, $schema->utf8_off($column, $value);
+            push @bind, $schema->utf8_off($column, $value);
         }
     }
 
@@ -497,7 +464,7 @@ sub find_all {
     my $options = defined $args{options} ? $args{options} : {};
     
     my $schema = $class->schema_class($table);
-    my $columns = $options->{select} || $schema->schema_info->{columns};
+    my $columns = $options->{select} || [ keys %{ $schema->schema_info->{columns} } ];
     my $statement = $class->statement;
     $statement->select($columns);
     $statement->from([ $table ]);
@@ -575,7 +542,7 @@ sub create_row_object {
 
     my %values = %{ $hashref || {} };
     my $object = $object_class->new(%values);
-    # Define accessors
+    # define accessors
     ref($object)->mk_accessors(keys %values);
 
     return $object;
@@ -620,9 +587,9 @@ sub placeholder {
 
 
 sub statement {
-    my ($class, $args) = @_;
-    $args->{thin} = $class;
-    return DBIx::Thin::Statement->new($args);
+    my ($class, %args) = @_;
+    $args{thin} = $class;
+    return DBIx::Thin::Statement->new(%args);
 }
 
 

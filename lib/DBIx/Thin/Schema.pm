@@ -3,50 +3,65 @@ package DBIx::Thin::Schema;
 use strict;
 use warnings;
 use Carp qw/croak/;
+use DBIx::Thin::Utils qw/check_required_args/;
+use Data::Dumper qw(Dumper);
+use Storable qw/dclone/;
 
+my ($is_utf8_function, $utf8_on_function, $utf8_off_function);
 BEGIN {
+    # TODO: updating code of DBIx::Skinny
     if ($] <= 5.008000) {
         require Encode;
+        $is_utf8_function = \&Encode::is_utf8;
+        $utf8_on_function = \&Encode::_utf8_on;
+        $utf8_off_function = \&Encode::_utf8_off;
     } else {
         require utf8;
+        $is_utf8_function = \&utf8::is_utf8;
+        $utf8_on_function = \&utf8::decode;
+        $utf8_off_function = \&utf8::encode;
     }
-}
+};
 
 my %table2schema_class = ();
 sub import {
     my $caller = caller;
 
-    my @functions = qw/
-        install_table
-          schema primary_key columns schema_info
-        install_inflate_rule
-          inflate deflate call_inflate call_deflate
-          callback _do_inflate
-        trigger call_trigger
-        install_utf8_columns
-          is_utf8_column utf8_on utf8_off
-    /;
-    no strict 'refs';
-    for my $func (@functions) {
-        *{"$caller\::$func"} = \&$func;
+    {
+        no strict 'refs';
+        my @not_define = qw/__ANON__ BEGIN VERSION croak import check_required_args/;
+        my %symbols = %DBIx::Thin::Schema::;
+        my @functions = ();
+        for my $name (keys %symbols) {
+            next if (grep { $name eq $_ } @not_define);
+            push @functions, $name;
+        }
+
+        for my $f (@functions) {
+            *{"$caller\::$f"} = \&$f;
+        }
+
+        my $schema_info = {
+            primary_key => undef,
+            columns => {},
+            column_names => [],
+            triggers => {},
+            utf8_columns => {},
+            defaults => {},
+        };
+
+        *{"$caller\::schema_info"} = sub { $schema_info };
+# TODO: delete
+        my $_schema_inflate_rule = {};
+        *{"$caller\::inflate_rules"} = sub { $_schema_inflate_rule };
+        *{"$caller\::utf8_columns"} = sub { $schema_info->{utf8_columns} };
     }
 
-    my $schema_info = {
-        primary_key => undef,
-        columns => undef,
-        triggers => {},
-    };
-    *{"$caller\::schema_info"} = sub { $schema_info };
-    my $_schema_inflate_rule = {};
-    *{"$caller\::inflate_rules"} = sub { $_schema_inflate_rule };
-    my $_utf8_columns = {};
-    *{"$caller\::utf8_columns"} = sub { $_utf8_columns };
-
     strict->import;
-#    warnings->import;
+    warnings->import;
 }
 
-sub _get_caller_class {
+sub caller_class {
     my $caller = caller(1);
     return $caller;
 }
@@ -55,38 +70,102 @@ sub table2schema_class($) {
     my $table = shift;
     my $schema_class = $table2schema_class{$table};
     unless ($schema_class) {
-        Carp::croak "Cannot find shcema_class for '$table'";
+        croak "Cannot find shcema_class for '$table'";
     }
     return $schema_class;
 }
 
 sub install_table ($$) {
     my ($table, $install_code) = @_;
-
-    my $class = _get_caller_class;
+    my $class = caller_class;
+    my $schema_info = $class->schema_info;
 #warn "caller class: $class\n";
-    $class->schema_info->{installing_table} = $table;
+    $schema_info->{_installing_table} = $table;
     $install_code->();
     $table2schema_class{$table} = $class;
-    delete $class->schema_info->{installing_table};
+    delete $schema_info->{_installing_table};
+    if (defined $schema_info->{primary_key}) {
+        my $pk = $schema_info->{primary_key};
+        unless (grep { $_ eq $pk } @{ $schema_info->{column_names} || [] }) {
+            croak "Column definition for primary key '$pk' not found.";
+        }
+    }
+
 }
 
 sub schema (&) { shift }
 
 sub primary_key ($) {
     my $column = shift;
-    _get_caller_class()->schema_info->{primary_key} = $column;
+    caller_class->schema_info->{primary_key} = $column;
 }
 
 sub columns (@) {
-    my @columns = @_;
-    _get_caller_class()->schema_info->{columns} = \@columns;
+    my $class = caller_class;
+    my $schema_info = $class->schema_info;
+    my $defaults = $schema_info->{defaults};
+
+    while (my ($name, $def) = splice @_, 0, 2) {
+        my $cloned_def = Storable::dclone $def;
+        if ($def->{type} eq 'string') {
+            if (defined $def->{utf8} && $def->{utf8} == 1) {
+                $schema_info->{utf8_columns}->{$name} = 1;
+            }
+            elsif (!defined $def->{utf8} && $defaults->{string_is_utf8} == 1) {
+                # apply default 'utf8' value
+                $schema_info->{utf8_columns}->{$name} = 1;
+                $cloned_def->{utf8} = 1;
+            }
+        }
+
+        $schema_info->{columns}->{$name} = $cloned_def;
+        push @{ $schema_info->{column_names} }, $name;
+    }
+#    print Dumper $schema_info;
+}
+
+sub Integer { 'integer' }
+sub Declimal { 'declimal' }
+sub String { 'string' }
+sub Binary { 'binary' }
+sub Datetime { 'datetime' }
+sub Date { 'date' }
+sub Time { 'time' }
+
+sub defaults {
+    my %args = @_;
+    my $defaults = caller_class->schema_info->{defaults};
+    while (my ($k, $v) = each %args) {
+        # TODO: need to validate values? (low priority)
+        $defaults->{$k} = $v;
+    }
+}
+
+sub is_utf8_column {
+    my ($class, $column) = @_;
+    return $class->utf8_columns->{$column} ? 1 : 0;
+}
+
+sub utf8_on {
+    my ($class, $column, $data) = @_;
+    if ($class->is_utf8_column($column) && $is_utf8_function->($data)) {
+        $utf8_on_function->($data);
+    }
+    return $data;
+}
+
+sub utf8_off {
+    my ($class, $column, $data) = @_;
+    if ($class->is_utf8_column($column) && $is_utf8_function->($data)) {
+        $utf8_off_function->($data);
+    }
+    return $data;
 }
 
 sub trigger ($$) {
     my ($trigger_name, $code) = @_;
 
-    my $class = _get_caller_class;
+    my $class = caller_class;
 #    push @{$class->schema_info->{
 #        $class->schema_info->{installing_table}
 #    }->{triggers}->{$trigger_name}}, $code;
@@ -100,26 +179,26 @@ sub trigger ($$) {
 
 sub call_trigger {
     my ($class, $thin, %args) = @_;
-    # TODO: check args
+    check_required_args([ qw/trigger_name/ ], \%args);
     my $triggers = $class->schema_info->{triggers}->{$args{trigger_name}};
-    for my $code (@{ $triggers || [] }) {
-        $code->($thin, $args{trigger_args});
+    for my $trigger (@{ $triggers || [] }) {
+        $trigger->($thin, $args{trigger_args});
     }
 }
 
 sub install_inflate_rule ($$) {
     my ($rule, $install_inflate_code) = @_;
 
-    my $class = _get_caller_class;
+    my $class = caller_class;
     $class->inflate_rules->{_installing_rule} = $rule;
-        $install_inflate_code->();
+    $install_inflate_code->();
     delete $class->inflate_rules->{_installing_rule};
 }
 
 sub inflate (&) {
     my $code = shift;
 
-    my $class = _get_caller_class;
+    my $class = caller_class;
     $class->inflate_rules->{
         $class->inflate_rules->{_installing_rule}
     }->{inflate} = $code;
@@ -128,7 +207,7 @@ sub inflate (&) {
 sub deflate (&) {
     my $code = shift;
 
-    my $class = _get_caller_class;
+    my $class = caller_class;
     $class->inflate_rules->{
         $class->inflate_rules->{_installing_rule}
     }->{deflate} = $code;
@@ -160,46 +239,6 @@ sub _do_inflate {
 
 sub callback (&) { shift }
 
-sub install_utf8_columns (@) {
-    my @columns = @_;
-    my $class = _get_caller_class;
-    for my $column (@columns) {
-        $class->utf8_columns->{$column} = 1;
-    }
-}
-
-sub is_utf8_column {
-    my ($class, $column) = @_;
-    return $class->utf8_columns->{$column} ? 1 : 0;
-}
-
-sub utf8_on {
-    my ($class, $column, $data) = @_;
-
-    if ($class->is_utf8_column($column)) {
-        if ($] <= 5.008000) {
-            Encode::_utf8_on($data) unless Encode::is_utf8($data);
-        } else {
-            utf8::decode($data) unless utf8::is_utf8($data);
-        }
-    }
-
-    return $data;
-}
-
-sub utf8_off {
-    my ($class, $column, $data) = @_;
-
-    if ($class->is_utf8_column($column)) {
-        if ($] <= 5.008000) {
-            Encode::_utf8_off($data) if Encode::is_utf8($data);
-        } else {
-            utf8::encode($data) if utf8::is_utf8($data);
-        }
-    }
-    return $data;
-}
-
 1;
 
 __END__
@@ -213,15 +252,16 @@ DBIx::Thin::Schema - Schema DSL for DBIx::Thin
   package Your::Model;
 
   use DBIx::Thin;
-  DBIx::Thin->setup({
-      dsn => 'dbi:SQLite:',
+  DBIx::Thin->setup(
+      dsn => 'dbi:SQLite:model.sqlite',
       username => 'root',
       password => '',
-  });
+  );
   
   1;
   
-  package Your::Model::Schema:
+  package Your::Model::User;
+  
   use DBIx::Thin::Schema;
   
   # set user table schema settings
@@ -251,4 +291,3 @@ DBIx::Thin::Schema - Schema DSL for DBIx::Thin
   };
   
   1;
-

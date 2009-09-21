@@ -14,8 +14,8 @@ __PACKAGE__->mk_accessors(qw/
 /);
 
 sub new {
-    my ($class, $args) = @_;
-    my $stmt = $class->SUPER::new($args);
+    my ($class, %args) = @_;
+    my $stmt = $class->SUPER::new(%args);
 
     $stmt->select([]);
     $stmt->distinct(0);

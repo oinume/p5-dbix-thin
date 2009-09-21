@@ -16,6 +16,8 @@ setup
 new
 driver
 
+# DBIx::Thin::Statement
+
 
 Method implementation #################
 update_or_create
@@ -24,7 +26,6 @@ find_all_with_pagenator
 find_all_with_pagenator_by_sql
 setup
 compile(for mod_perl?)
-load_schema
 
 # DBIx::Thin::Row
 update

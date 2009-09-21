@@ -16,7 +16,7 @@ INSERT INTO user (name, email, created_at, updated_at)
 SQL
     bind => [ $name, $name . '@test.com', '0000-00-00 00:00:00', '0000-00-00 00:00:00' ],
     options => {
-        fetch_inserted_row => 1,
+        fetch_created_row => 1,
     },
 );
 is($user->{name}, $name, 'create_by_sql');
