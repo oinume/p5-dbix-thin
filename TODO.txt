@@ -32,8 +32,6 @@ update
 delete
 whole interface and data structures
 
-utf8 handling #############
-
 trigger ###################
 before_create
 after_create

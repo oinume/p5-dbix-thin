@@ -8,7 +8,6 @@ requires 'Class::Accessor' => '0.25';
 requires 'DBI' => '1.38';
 requires 'File::Spec';
 requires 'UNIVERSAL::require';
-#requires 'Digest::SHA1';
 
 author_tests('xt');
 
