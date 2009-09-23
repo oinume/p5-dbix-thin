@@ -255,6 +255,7 @@ sub create_by_sql {
 
 sub create_all {
     my ($class, $table, %args) = @_;
+    check_table($table);
     check_required_args([ qw/data/ ], \%args);
     
     my $driver = $class->driver;
