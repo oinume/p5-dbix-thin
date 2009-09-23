@@ -128,6 +128,7 @@ sub Integer { 'integer' }
 sub Declimal { 'declimal' }
 sub String { 'string' }
 sub Binary { 'binary' }
+sub Boolean { 'boolean' }
 sub Datetime { 'datetime' }
 sub Date { 'date' }
 sub Time { 'time' }
