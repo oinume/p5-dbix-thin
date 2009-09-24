@@ -294,7 +294,6 @@ sub update {
             push @set, "$column = " . ${ $value };
         } else {
             push @set, "$column = ?";
-            push @bind, $value;
             push @bind, $schema->utf8_off($column, $value);
         }
     }

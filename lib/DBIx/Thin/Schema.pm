@@ -106,7 +106,19 @@ sub columns (@) {
     my $defaults = $schema_info->{defaults};
 
     while (my ($name, $def) = splice @_, 0, 2) {
+        my $inflate = delete $def->{inflate};
+        my $deflate = delete $def->{deflate};
+        
         my $cloned_def = Storable::dclone $def;
+        if (defined $inflate) {
+            $def->{inflate} = $inflate;
+            $cloned_def->{inflate} = $inflate;
+        }
+        if (defined $deflate) {
+            $def->{deflate} = $deflate;
+            $cloned_def->{deflate} = $deflate;
+        }
+        
         if ($def->{type} eq 'string') {
             if (defined $def->{utf8} && $def->{utf8} == 1) {
                 $schema_info->{utf8_columns}->{$name} = 1;
