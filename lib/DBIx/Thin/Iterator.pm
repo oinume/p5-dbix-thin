@@ -45,6 +45,7 @@ sub new {
     my ($class, %args) = @_;
     my $self = bless { %args }, $class;
     $self->{current} = 0;
+    $self->{_object_setup_called} = 0;
     return $self;
 }
 
@@ -155,7 +156,7 @@ Creates an instance for 'object_class' when L<next|DBIx::Thin::Itertor/next> is 
 
 =cut
 sub create_object {
-    my ($self, $args) = @_;
+    my ($self, $values) = @_;
 
     my $class = $self->{object_class};
     unless ($class) {
@@ -163,15 +164,17 @@ sub create_object {
     }
 
     $class->require or croak $@;
-    my $object = $class->new;
+    my $object = $class->new(
+        _thin => $self->{thin},
+        _table => $class->schema_info->{table},
+        _row_data => $values,
+    );
 
-    my @accessors = ();
-    while (my ($key, $value) = each %{ $args || {} }) {
-        $object->{$key} = $value;
-        push @accessors, $key;
+    unless ($self->{_object_setup_called}) {
+        # define accessors
+        $object->setup;
+        $self->{_object_setup_called} = 1;
     }
-    # Create accessors
-    ref($object)->mk_accessors(@accessors);
 
     return $object;
 }

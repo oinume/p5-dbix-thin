@@ -19,4 +19,4 @@ SQL
         fetch_created_row => 1,
     },
 );
-is($user->{name}, $name, 'create_by_sql');
+is($user->name, $name, 'create_by_sql');

@@ -25,4 +25,4 @@ SQL
 );
 my $user2 = $model->find_by_pk('user', $user->id);
 
-is($user2->{name}, 'updated', 'update_by_sql');
+is($user2->name, 'updated', 'update_by_sql');

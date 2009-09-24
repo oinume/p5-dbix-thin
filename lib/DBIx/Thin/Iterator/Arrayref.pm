@@ -12,8 +12,13 @@ sub new {
     my ($class, %args) = @_;
     check_required_args([ qw/data/ ], \%args);
 
+    unless (defined $args{thin}) {
+        $args{thin} = 'DBIx::Thin';
+    }
+    
     my @new_data = map { $_ } @{ $args{data} };
     my $self = bless {
+        thin => $args{thin},
         data => \@new_data,
         current => 0,
     }, $class;

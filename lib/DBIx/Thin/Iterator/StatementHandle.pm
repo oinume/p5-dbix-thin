@@ -11,7 +11,7 @@ use base qw/DBIx::Thin::Iterator/;
 sub new {
     my ($class, %args) = @_;
     check_required_args([ qw/sth object_class/ ], \%args);
-
+# TODO: thin required when $model->find form
     return bless {
         sth => $args{sth},
         object_class => $args{object_class}

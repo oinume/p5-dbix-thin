@@ -17,9 +17,10 @@ my $user = $model->create(
         email => $name . '@test.com',
     },
 );
-is($user->{name}, $name, 'create');
+is($user->name, $name, 'create');
 # check value of primary key
-ok($user->{$user->schema_info->{primary_key}}, 'create');
+my $primary_key = $user->schema_info->{primary_key};
+ok($user->$primary_key, 'create');
 
 my $name2 = 'おいぬめ-0';
 my $user2 = $model->create(
@@ -29,5 +30,5 @@ my $user2 = $model->create(
         email => 'oinume-2@test.com',
     },
 );
-is($user2->{name}, $name2, 'create (utf8_off)');
-ok(utf8::is_utf8($user2->{name}), 'create (utf8_on)');
+is($user2->name, $name2, 'create (utf8_off)');
+ok(utf8::is_utf8($user2->name), 'create (utf8_on)');

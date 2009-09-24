@@ -12,6 +12,8 @@ use DBIx::Thin::Schema;
 use DBIx::Thin::Statement;
 use DBIx::Thin::Utils qw/check_required_args/;
 
+# TODO: define stringify method
+
 our $VERSION = '0.01';
 
 sub import {
@@ -248,7 +250,7 @@ sub create_by_sql {
     $driver->close_sth($sth);
 
     my $object = $options->{fetch_created_row} ?
-        $class->find_by_pk($table, $last_insert_id) : $schema->new;
+        $class->find_by_pk($table, $last_insert_id) : $schema->new(_table => $table);
 
     return $object;
 }
@@ -518,6 +520,7 @@ sub find_all_by_sql {
 
     DBIx::Thin::Iterator::StatementHandle->require or croak $@;
     return DBIx::Thin::Iterator::StatementHandle->new(
+        thin => $class,
         sth => $sth,
         # In DBIx::Thin, object_class is a schema class.
         object_class => $class->schema_class($table),
@@ -539,11 +542,14 @@ sub find_or_create {
 sub create_row_object {
     my ($class, $object_class, $hashref) = @_;
 
-    my %values = %{ $hashref || {} };
+    my %values = (
+        _thin => $class,
+        _table => $object_class->schema_info->{table},
+        _row_data => $hashref,
+    );
     my $object = $object_class->new(%values);
-    # define accessors
-    ref($object)->mk_accessors(keys %values);
-
+    $object->setup;
+    
     return $object;
 }
 

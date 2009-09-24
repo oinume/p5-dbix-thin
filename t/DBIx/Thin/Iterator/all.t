@@ -26,6 +26,12 @@ my $iterator = undef;
 # as_array
 {
     my @array = $iterator->as_array;
-    use Data::Dumper;
-    is_deeply(\@array, \@data, 'as_array');
+    for my $obj (@array) {
+        $obj->{_dirty_columns} = {};
+    }
+#    use Data::Dumper;
+#    print Dumper \@array;
+    for my $i (0 .. $#data) {
+        is_deeply($array[$i]->{_row_data}, $data[$i], "as_array ($i)");
+    }
 }

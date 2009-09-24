@@ -31,8 +31,8 @@ my $iterator = undef;
     while (my $row = $iterator->next) {
         push @list, $row;
     }
-    is($list[0]->{name}, $data[0]->{name}, 'next');
-    is($list[0]->{email}, $data[0]->{email}, 'next');
+    is($list[0]->name, $data[0]->{name}, 'next');
+    is($list[0]->email, $data[0]->{email}, 'next');
 
     # Returns undef
     ok(!$iterator->next, 'next');

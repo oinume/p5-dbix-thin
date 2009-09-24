@@ -42,6 +42,7 @@ sub import {
         }
 
         my $schema_info = {
+            table => undef,
             primary_key => undef,
             columns => {},
             column_names => [],
@@ -81,16 +82,18 @@ sub install_table ($$) {
     my $schema_info = $class->schema_info;
 #warn "caller class: $class\n";
     $schema_info->{_installing_table} = $table;
-    $install_code->();
+    $schema_info->{table} = $table;
     $table2schema_class{$table} = $class;
+    
+    $install_code->();
     delete $schema_info->{_installing_table};
+
     if (defined $schema_info->{primary_key}) {
         my $pk = $schema_info->{primary_key};
         unless (grep { $_ eq $pk } @{ $schema_info->{column_names} || [] }) {
             croak "Column definition for primary key '$pk' not found.";
         }
     }
-
 }
 
 sub schema (&) { shift }

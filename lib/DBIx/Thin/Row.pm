@@ -2,9 +2,11 @@ package DBIx::Thin::Row;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
+use DBIx::Thin::Utils qw(check_required_args);
+use UNIVERSAL::require;
 
-use base qw/DBIx::Thin::Accessor/;
+use base qw(DBIx::Thin::Accessor);
 
 # TODO: implement
 # key => value のデータをオブジェクトに直接保存する
@@ -14,12 +16,16 @@ use base qw/DBIx::Thin::Accessor/;
 sub new {
     my ($class, %args) = @_;
     my $self = bless { %args }, $class;
+# TODO: table is needed?
+    check_required_args([ qw(_table) ], \%args);
+
     if ($self->{_row_data}) {
         my @select_columns = keys %{ $self->{_row_data} };
         if (@select_columns) {
             $self->{_select_columns} = \@select_columns;
         }
     }
+    
     return $self;
 }
 
@@ -30,26 +36,28 @@ sub setup {
     for my $alias (@{ $self->{_select_columns} }) {
         (my $col = lc $alias) =~ s/.+\.(.+)/$1/o;
         next if $class->can($col);
-        {
-            no strict 'refs';
-            no warnings 'redefine';
-            *{"$class\::$col"} = $self->lazy_getter($col);
-        }
+        
+        no strict 'refs';
+        no warnings 'redefine';
+        *{"$class\::$col"} = $self->_lazy_getter($col);
     }
 
     $self->{_get_column_cached} = {};
     $self->{_dirty_columns} = {};
 }
 
-sub lazy_getter {
+sub _lazy_getter {
     my ($self, $col) = @_;
 
     return sub {
         my $self = shift;
 
-        unless ( $self->{_get_column_cached}->{$col} ) {
+        unless ($self->{_get_column_cached}->{$col}) {
             my $data = $self->get_column($col);
-            $self->{_get_column_cached}->{$col} = $self->{thin}->schema->call_inflate($col, $data);
+            # TODO: class check
+            if ($self->can('call_inflate')) {
+                $self->{_get_column_cached}->{$col} = $self->call_inflate($col, $data);
+            }
         }
         $self->{_get_column_cached}->{$col};
     };
@@ -59,8 +67,12 @@ sub get_column {
     my ($self, $col) = @_;
 
     my $data = $self->{_row_data}->{$col};
-
-    $data = $self->{thin}->schema->utf8_on($col, $data);
+    if (defined $data) {
+        # TODO: class check
+        if (my $method = $self->can('utf8_on')) {
+            $data = $self->utf8_on($col, $data);
+        }
+    }
 
     return $data;
 }
@@ -94,19 +106,22 @@ sub get_dirty_columns {
 
 sub create {
     my $self = shift;
-# TODO: find_or_create
-    return $self->{thin}->find_or_create($self->{table}, $self->get_columns);
+# TODO: implement find_or_create
+    return $self->{_thin}->find_or_create($self->{_table}, $self->get_columns);
 }
 
 sub update {
-    my ($self, $args, $table) = @_;
-    unless ($table) {
-        $table = $self->{table};
-    }
+    my ($self, $args) = @_;
+    # TODO: fix API
+    my $table = $self->{_table};
     $args ||= $self->get_dirty_columns;
     my $where = $self->update_or_delete_condition($table);
     $self->set($args);
-    return $self->{thin}->update($table, $args, $where);
+    return $self->{_thin}->update(
+        $table,
+        data => $args,
+        where => $where
+    );
 }
 
 sub delete {
@@ -115,8 +130,8 @@ sub delete {
         $table = $self->{table};
     }
     my $where = $self->update_or_delete_condition($table);
-    my $primary_key = $self->{thin}->schema_class($table)->schema_info->{primary_key};
-    return $self->{thin}->delete($table, $where->{$primary_key});
+    my $primary_key = $self->{_thin}->schema_class($table)->schema_info->{primary_key};
+    return $self->{_thin}->delete($table, $where->{$primary_key});
 }
 
 sub update_or_delete_condion {
@@ -126,7 +141,7 @@ sub update_or_delete_condion {
         croak "no table info";
     }
 
-    my $schema = $self->{thin}->schema_class($table);
+    my $schema = $self->{_thin}->schema_class($table);
     unless ($schema) {
         croak "Unknown table: $table";
     }
