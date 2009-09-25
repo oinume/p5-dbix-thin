@@ -280,14 +280,14 @@ Interface for inserting multi rows.
 
 =cut
 sub bulk_insert {
-    my ($self, $thin, $table, $args) = @_;
+    my ($self, $model, $table, $values) = @_;
     my $dbh = $self->dbh;
     $dbh->begin_work;
 
     my $inserted = 0;
-    for my $arg ( @{$args} ) {
+    for my $value ( @{$values} ) {
 # TODO: adjust trigger
-        $thin->create($table, data => $arg);
+        $model->create($table, data => $value);
         $inserted++;
     }
 

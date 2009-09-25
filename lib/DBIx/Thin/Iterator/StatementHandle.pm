@@ -31,8 +31,7 @@ sub next {
 
 sub size {
     my $self = shift;
-    # TODO: sth->rows isn't good
-    return $self->{sth} ? $self->{sth}->rows : 0;
+    return scalar $self->as_array;
 }
 
 sub group_by {

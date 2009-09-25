@@ -20,6 +20,6 @@ $model->create_all('user', data => \@values);
 
 my $iterator = $model->find_all(
     'user',
-    where => { name => { op => 'LIKE', value => '%find_all%' } }
+    where => { name => { op => 'LIKE', value => 'find_all%' } }
 );
 ok($iterator->size >= 3, 'find_all');

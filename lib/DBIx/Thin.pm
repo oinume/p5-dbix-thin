@@ -465,7 +465,7 @@ sub find_all {
     my $options = defined $args{options} ? $args{options} : {};
     
     my $schema = $class->schema_class($table);
-    my $columns = $options->{select} || [ keys %{ $schema->schema_info->{columns} } ];
+    my $columns = $options->{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
     my $statement = $class->statement;
     $statement->select($columns);
     $statement->from([ $table ]);
