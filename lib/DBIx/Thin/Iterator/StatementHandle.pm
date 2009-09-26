@@ -14,7 +14,8 @@ sub new {
 # TODO: thin required when $model->find form
     return bless {
         sth => $args{sth},
-        object_class => $args{object_class}
+        object_class => $args{object_class},
+        model => $args{model},
     }, $class;
 }
 
@@ -27,11 +28,6 @@ sub next {
     }
 
     return $self->create_object($hashref);
-}
-
-sub size {
-    my $self = shift;
-    return scalar $self->as_array;
 }
 
 sub group_by {

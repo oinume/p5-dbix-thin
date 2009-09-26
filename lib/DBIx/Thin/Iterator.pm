@@ -117,9 +117,9 @@ Returns containg object row num.
 =cut
 sub size {
     my $self = shift;
-    my @rows = $self->reset->all;
+    my @rows = $self->reset->as_array;
     $self->reset;
-    scalar @rows;
+    return scalar @rows;
 }
 
 =head2 as_array
@@ -165,9 +165,8 @@ sub create_object {
 
     $class->require or croak $@;
     my $object = $class->new(
-        _thin => $self->{thin},
-        _table => $class->schema_info->{table},
-        _row_data => $values,
+        _values => $values,
+        _model => $self->{model},
     );
 
     unless ($self->{_object_setup_called}) {

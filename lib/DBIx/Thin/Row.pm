@@ -9,18 +9,17 @@ use UNIVERSAL::require;
 use base qw(DBIx::Thin::Accessor);
 
 # TODO: implement
-# key => value ‚Ìƒf[ƒ^‚ðƒIƒuƒWƒFƒNƒg‚É’¼Ú•Û‘¶‚·‚é
-# getter‚ÌƒAƒNƒZƒT‚ðƒtƒbƒN‚µ‚Ä‚Ç‚¤‚É‚©‚·‚é
-# 
+# FETCH,STOREã‚’å®Ÿè£…ã™ã‚‹ã‹ï¼Ÿ
+
 
 sub new {
     my ($class, %args) = @_;
     my $self = bless { %args }, $class;
-# TODO: table is needed?
-    check_required_args([ qw(_table) ], \%args);
+# TODO: implement other tables
+#    check_required_args([ qw(other_tables) ], \%args);
 
-    if ($self->{_row_data}) {
-        my @select_columns = keys %{ $self->{_row_data} };
+    if ($self->{_values}) {
+        my @select_columns = keys %{ $self->{_values} };
         if (@select_columns) {
             $self->{_select_columns} = \@select_columns;
         }
@@ -66,7 +65,7 @@ sub _lazy_getter {
 sub get_column {
     my ($self, $col) = @_;
 
-    my $data = $self->{_row_data}->{$col};
+    my $data = $self->{_values}->{$col};
     if (defined $data) {
         # TODO: class check
         if (my $method = $self->can('utf8_on')) {
@@ -91,7 +90,7 @@ sub set {
     my ($self, $args) = @_;
 
     for my $col (keys %$args) {
-        $self->{_row_data}->{$col} = $args->{$col};
+        $self->{_values}->{$col} = $args->{$col};
         delete $self->{_get_column_cached}->{$col};
         $self->{_dirty_columns}->{$col} = 1;
     }
@@ -107,31 +106,28 @@ sub get_dirty_columns {
 sub create {
     my $self = shift;
 # TODO: implement find_or_create
-    return $self->{_thin}->find_or_create($self->{_table}, $self->get_columns);
+    return $self->{_model}->find_or_create($self->{_table}, $self->get_columns);
 }
 
 sub update {
-    my ($self, $args) = @_;
-    # TODO: fix API
-    my $table = $self->{_table};
-    $args ||= $self->get_dirty_columns;
+    my ($self, $data) = @_;
+    my $table = $self->get_table;
+    $data ||= $self->get_dirty_columns;
     my $where = $self->update_or_delete_condition($table);
-    $self->set($args);
-    return $self->{_thin}->update(
+    $self->set($data);
+    return $self->{_model}->update(
         $table,
-        data => $args,
+        data => $data,
         where => $where
     );
 }
 
 sub delete {
-    my ($self, $table) = @_;
-    unless ($table) {
-        $table = $self->{table};
-    }
+    my ($self) = @_;
+    my $table = $self->get_table;
     my $where = $self->update_or_delete_condition($table);
-    my $primary_key = $self->{_thin}->schema_class($table)->schema_info->{primary_key};
-    return $self->{_thin}->delete($table, $where->{$primary_key});
+    my $primary_key = $self->schema_info->{primary_key};
+    return $self->{_model}->delete($table, $where->{$primary_key});
 }
 
 sub update_or_delete_condion {
@@ -141,7 +137,7 @@ sub update_or_delete_condion {
         croak "no table info";
     }
 
-    my $schema = $self->{_thin}->schema_class($table);
+    my $schema = $self->{_model}->schema_class($table);
     unless ($schema) {
         croak "Unknown table: $table";
     }
@@ -157,6 +153,15 @@ sub update_or_delete_condion {
     }
 
     return { $primary_key => $self->$primary_key };
+}
+
+sub get_table {
+    my ($self) = @_;
+    unless ($self->can('schema_info')) {
+        croak "Cannot call method 'schema_info' of '@{[ __PACKAGE__ ]}'";
+    }
+    my $table = $self->schema_info->{table};
+    return $table;
 }
 
 1; # base code from DBIx::Skinny::Row

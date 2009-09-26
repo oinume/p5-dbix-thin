@@ -32,6 +32,6 @@ my $iterator = undef;
 #    use Data::Dumper;
 #    print Dumper \@array;
     for my $i (0 .. $#data) {
-        is_deeply($array[$i]->{_row_data}, $data[$i], "as_array ($i)");
+        is_deeply($array[$i]->{_values}, $data[$i], "as_array ($i)");
     }
 }

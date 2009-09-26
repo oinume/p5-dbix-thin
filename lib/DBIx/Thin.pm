@@ -543,9 +543,8 @@ sub create_row_object {
     my ($class, $object_class, $hashref) = @_;
 
     my %values = (
+        _values => $hashref,
         _thin => $class,
-        _table => $object_class->schema_info->{table},
-        _row_data => $hashref,
     );
     my $object = $object_class->new(%values);
     $object->setup;
