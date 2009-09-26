@@ -17,10 +17,10 @@ for my $i (0 .. 2) {
     };
 }
 
-$model->create_all('user', data => \@values);
+$model->create_all('user', values => \@values);
 my $updated_count = $model->update(
     'user',
-    data => {
+    values => {
         name => 'name was updated',
         email => 'updated@test.com',
     },

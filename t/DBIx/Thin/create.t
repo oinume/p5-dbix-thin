@@ -12,7 +12,7 @@ my $counter = 0;
 my $name = 'create-' . $counter++;
 my $user = $model->create(
     'user',
-    data => {
+    values => {
         name => $name,
         email => $name . '@test.com',
     },
@@ -25,7 +25,7 @@ ok($user->$primary_key, 'create');
 my $name2 = 'おいぬめ-0';
 my $user2 = $model->create(
     'user',
-    data => {
+    values => {
         name => $name2,
         email => 'oinume-2@test.com',
     },

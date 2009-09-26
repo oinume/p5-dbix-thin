@@ -13,7 +13,7 @@ my @values = ();
 my $name = 'find_by_pk-0';
 my $user = $model->create(
     'user',
-    data => {
+    values => {
         name => $name, email => $name . '@test.com'
     }
 );

@@ -16,7 +16,7 @@ for my $i (0 .. 2) {
         email => $name . '@test.com',
     };
 }
-$model->create_all('user', data => \@values);
+$model->create_all('user', values => \@values);
 
 my $iterator = $model->find_all(
     'user',

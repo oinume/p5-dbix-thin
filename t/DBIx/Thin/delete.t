@@ -19,7 +19,7 @@ for my $i (0 .. 2) {
 
 my $user = $model->create(
     'user',
-    data => {
+    values => {
         name => 'delete-0',
         email => 'delete-0@test.com',
     }

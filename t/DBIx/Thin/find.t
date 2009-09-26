@@ -17,7 +17,7 @@ for my $i (0 .. 2) {
     };
 }
 
-$model->create_all('user', data => \@values);
+$model->create_all('user', values => \@values);
 
 my $user = $model->find(
     'user',

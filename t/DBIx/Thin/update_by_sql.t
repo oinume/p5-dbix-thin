@@ -11,7 +11,7 @@ my $counter = 0;
 my $name = 'update_by_sql-' . $counter++;
 my $user = $model->create(
     'user',
-    data => {
+    values => {
         name => $name,
         email => $name . '@test.com',
     },

@@ -41,7 +41,7 @@ sub setup {
         *{"$class\::$col"} = $self->_lazy_getter($col);
     }
 
-    $self->{_get_column_cached} = {};
+    $self->{_get_value_cached} = {};
     $self->{_dirty_columns} = {};
 }
 
@@ -51,54 +51,70 @@ sub _lazy_getter {
     return sub {
         my $self = shift;
 
-        unless ($self->{_get_column_cached}->{$col}) {
-            my $data = $self->get_column($col);
+        unless ($self->{_get_value_cached}->{$col}) {
+            my $value = $self->get_value($col);
             # TODO: class check
             if ($self->can('call_inflate')) {
-                $self->{_get_column_cached}->{$col} = $self->call_inflate($col, $data);
+                $self->{_get_value_cached}->{$col} = $self->call_inflate($col, $value);
             }
         }
-        $self->{_get_column_cached}->{$col};
+        $self->{_get_value_cached}->{$col};
     };
 }
 
-sub get_column {
-    my ($self, $col) = @_;
+sub get_value {
+    my ($self, $column) = @_;
 
-    my $data = $self->{_values}->{$col};
-    if (defined $data) {
-        # TODO: class check
-        if (my $method = $self->can('utf8_on')) {
-            $data = $self->utf8_on($col, $data);
-        }
+    my $value = $self->{_values}->{$column};
+    unless (defined $value) {
+        return $value;
     }
 
-    return $data;
+    # TODO: class check
+    if (my $method = $self->can('utf8_on')) {
+        $value = $self->utf8_on($column, $value);
+    }
+
+    return $value;
 }
 
-sub get_columns {
+sub get_values {
     my $self = shift;
-
-    my %data = ();
+    my %values = ();
     for my $col ( @{$self->{_select_columns}} ) {
-        $data{$col} = $self->get_column($col);
+        $values{$col} = $self->get_value($col);
     }
-    return \%data;
+    return %values;
 }
+
+sub get_raw_value {
+    my ($self, $column) = @_;
+    return $self->{_values}->{$column};
+}
+
+sub get_raw_values {
+    my ($self) = @_;
+    my %values = ();
+    while (my ($k, $v) = each %{ $self->{_values} || {} }) {
+        $values{$k} = $v;
+    }
+    return %values;
+}
+
 
 sub set {
     my ($self, $args) = @_;
 
     for my $col (keys %$args) {
         $self->{_values}->{$col} = $args->{$col};
-        delete $self->{_get_column_cached}->{$col};
+        delete $self->{_get_value_cached}->{$col};
         $self->{_dirty_columns}->{$col} = 1;
     }
 }
 
 sub get_dirty_columns {
     my $self = shift;
-    my %rows = map {$_ => $self->get_column($_)}
+    my %rows = map {$_ => $self->get_value($_)}
                keys %{$self->{_dirty_columns}};
     return \%rows;
 }
@@ -106,7 +122,7 @@ sub get_dirty_columns {
 sub create {
     my $self = shift;
 # TODO: implement find_or_create
-    return $self->{_model}->find_or_create($self->{_table}, $self->get_columns);
+    return $self->{_model}->find_or_create($self->{_table}, $self->get_values);
 }
 
 sub update {
@@ -174,17 +190,17 @@ DBIx::Thin::Row - DBIx::Thin's Row class
 
 =head1 METHODS
 
-=head2 get_column
+=head2 get_value
 
-    my $val = $row->get_column($col);
+    my $val = $row->get_value($col);
 
 get a column value from a row object.
 
-=head2 get_columns
+=head2 get_values
 
-    my %data = $row->get_columns;
+    my %data = $row->get_values;
 
-Does C<get_column>, for all column values.
+Does C<get_value>, for all column values.
 
 =head2 set
 

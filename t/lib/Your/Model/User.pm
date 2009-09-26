@@ -17,13 +17,13 @@ CREATE TABLE user (
 =cut
 
 sub inflate_datetime {
-    my ($value) = @_;
+    my ($column, $value) = @_;
     $value =~ s!-!/!g; # YYYY-MM-DD hh:mm:ss -> YYYY/MM/DD hh:mm::ss
     return $value;
 }
 
 sub deflate_datetime {
-    my ($value) = @_;
+    my ($column, $value) = @_;
     $value =~ s!/!-!g; # YYYY/MM/DD hh:mm:ss -> YYYY-MM-DD hh:mm::ss
     return $value;
 }

@@ -121,6 +121,9 @@ sub new {
 
     $self->attributes->{driver} = $driver_clone;
     $self->attributes->{profiler} = $profiler;
+    # get back deleted attributes
+    $attr->{driver} = $driver;
+    $attr->{profiler} = $profiler;
 
     return $self;
 }
@@ -171,10 +174,10 @@ sub driver { shift->attributes->{driver} }
 sub create {
     my ($class, $table, %args) = @_;
     check_table($table);
-    check_required_args([ qw/data/ ], \%args);
+    check_required_args([ qw/values/ ], \%args);
     
     my $schema = $class->schema_class($table);
-    my %data = %{ $args{data} };
+    my %values = %{ $args{values} };
 
     # call trigger
 #    $class->call_schema_trigger('before_create', $schema, $table, $args);
@@ -187,18 +190,18 @@ sub create {
 #    );
     
     # deflate
-#    for my $column (keys %data) {
+#    for my $column (keys %values) {
 #        # TODO: interface
-#        $data{$column} = $schema->call_deflate($column, $data{$column});
+#        $values{$column} = $schema->call_deflate($column, $values{$column});
 #    }
 
     my (@columns, @bind);
-    for my $column (keys %data) {
+    for my $column (keys %values) {
         push @columns, $column;
-        push @bind, $schema->utf8_off($column, $data{$column});
+        push @bind, $schema->utf8_off($column, $values{$column});
     }
 
-    chop(my $placeholder = ('?,' x @columns));
+    my $placeholder = $class->placeholder(@columns);
     my $sql = sprintf(
         "INSERT INTO %s\n (%s)\n VALUES(%s)",
         $table,
@@ -212,12 +215,12 @@ sub create {
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
 
-    # set auto incremented value to %data
+    # set auto incremented value to %values
     my $primary_key = $schema->schema_info->{primary_key};
     if ($primary_key) {
-        $data{$primary_key} = $last_insert_id;
+        $values{$primary_key} = $last_insert_id;
     }
-    my $object = $class->create_row_object($schema, \%data);
+    my $object = $class->create_row_object($schema, \%values);
 
 #    $schema->call_trigger(
 #        $class,
@@ -258,11 +261,11 @@ sub create_by_sql {
 sub create_all {
     my ($class, $table, %args) = @_;
     check_table($table);
-    check_required_args([ qw/data/ ], \%args);
+    check_required_args([ qw/values/ ], \%args);
     
     my $driver = $class->driver;
     if (my $bulk_insert = $driver->can('bulk_insert')) {
-        return $bulk_insert->($driver, $class, $table, $args{data});
+        return $bulk_insert->($driver, $class, $table, $args{values});
     }
     else {
         croak "The driver doesn't have 'bulk_insert' method.";
@@ -277,7 +280,7 @@ sub create_all_by_sql {
 sub update {
     my ($class, $table, %args) = @_;
     check_table($table);
-    check_required_args([ qw/data where/ ], \%args);
+    check_required_args([ qw/values where/ ], \%args);
     
     my $schema = $class->schema_class($table);
 #    $class->call_schema_trigger('pre_update', $schema, $table, $args);
@@ -287,10 +290,10 @@ sub update {
 #        $args->{$col} = $schema->call_deflate($col, $args->{$col});
 #    }
 
-    my %data = %{ $args{data} };
+    my %values = %{ $args{values} };
     my (@set, @bind);
-    for my $column (sort keys %data) {
-        my $value = $data{$column};
+    for my $column (sort keys %values) {
+        my $value = $values{$column};
         if (ref($value) eq 'SCALAR') {
             # for SCALARREF, dereference the value
             push @set, "$column = " . ${ $value };
@@ -666,7 +669,7 @@ DBIx::Thin - Lightweight ORMapper
  ### insert a record
  my $row = Your::Model->create(
      'user',
-     data => {
+     values => {
          name => 'oinume',
          email => 'oinume_at_gmail.com',
      }
@@ -685,7 +688,7 @@ DBIx::Thin - Lightweight ORMapper
  ### update records
  Your::Model->update(
      'user',
-     data => { name => 'new_user' },
+     values => { name => 'new_user' },
      where => { name => 'oinume' }
  );
 

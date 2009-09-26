@@ -231,26 +231,24 @@ sub deflate (&) {
 
 sub call_inflate {
     my $class = shift;
-
     return $class->_do_inflate('inflate', @_);
 }
 
 sub call_deflate {
     my $class = shift;
-
     return $class->_do_inflate('deflate', @_);
 }
 
 sub _do_inflate {
-    my ($class, $key, $col, $data) = @_;
+    my ($class, $method, $column, $value) = @_;
+#    warn "_do_inflate: column=$column, value=$value\n";
 
-    my $inflate_rules = $class->inflate_rules;
-    for my $rule (keys %{$inflate_rules}) {
-        if ($col =~ /$rule/ and my $code = $inflate_rules->{$rule}->{$key}) {
-            $data = $code->($data);
-        }
+    my $callback = $class->schema_info->{columns}->{$column}->{$method};
+    if (defined $callback) {
+        $callback->($column, $value);
+    } else {
+        return $value;
     }
-    return $data;
 }
 
 sub callback (&) { shift }
