@@ -121,7 +121,7 @@ sub new {
 
     $self->attributes->{driver} = $driver_clone;
     $self->attributes->{profiler} = $profiler;
-    # get back deleted attributes
+    # get deleted attributes back
     $attr->{driver} = $driver;
     $attr->{profiler} = $profiler;
 
@@ -190,10 +190,9 @@ sub create {
 #    );
     
     # deflate
-#    for my $column (keys %values) {
-#        # TODO: interface
-#        $values{$column} = $schema->call_deflate($column, $values{$column});
-#    }
+    for my $column (keys %values) {
+        $values{$column} = $schema->call_deflate($column, $values{$column});
+    }
 
     my (@columns, @bind);
     for my $column (keys %values) {
@@ -272,11 +271,6 @@ sub create_all {
     }
 }
 
-sub create_all_by_sql {
-    croak "Not implemented yet.";
-}
-
-
 sub update {
     my ($class, $table, %args) = @_;
     check_table($table);
@@ -285,12 +279,12 @@ sub update {
     my $schema = $class->schema_class($table);
 #    $class->call_schema_trigger('pre_update', $schema, $table, $args);
 
-    # deflate
-#    for my $col (keys %{$args}) {
-#        $args->{$col} = $schema->call_deflate($col, $args->{$col});
-#    }
-
     my %values = %{ $args{values} };
+    # deflate
+    for my $column (keys %values) {
+        $values{$column} = $schema->call_deflate($column, $values{$column});
+    }
+
     my (@set, @bind);
     for my $column (sort keys %values) {
         my $value = $values{$column};

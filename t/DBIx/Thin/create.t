@@ -22,6 +22,7 @@ is($user->name, $name, 'create');
 my $primary_key = $user->schema_info->{primary_key};
 ok($user->$primary_key, 'create');
 
+# check utf8
 my $name2 = 'おいぬめ-0';
 my $user2 = $model->create(
     'user',
@@ -32,3 +33,14 @@ my $user2 = $model->create(
 );
 is($user2->name, $name2, 'create (utf8_off)');
 ok(utf8::is_utf8($user2->name), 'create (utf8_on)');
+
+# check deflate
+my $user3 = $model->create(
+    'user',
+    values => {
+        name => $name2,
+        email => 'oinume-3@test.com',
+        created_at => '2009/09/30 13:59:10',
+    },
+);
+is($user3->get_raw_value('created_at'), '2009-09-30 13:59:10', 'create (deflate)');

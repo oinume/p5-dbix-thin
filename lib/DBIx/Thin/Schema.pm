@@ -52,9 +52,6 @@ sub import {
         };
 
         *{"$caller\::schema_info"} = sub { $schema_info };
-# TODO: delete
-        my $_schema_inflate_rule = {};
-        *{"$caller\::inflate_rules"} = sub { $_schema_inflate_rule };
         *{"$caller\::utf8_columns"} = sub { $schema_info->{utf8_columns} };
     }
 
@@ -163,19 +160,19 @@ sub is_utf8_column {
 }
 
 sub utf8_on {
-    my ($class, $column, $data) = @_;
-    if ($class->is_utf8_column($column) && $is_utf8_function->($data)) {
-        $utf8_on_function->($data);
+    my ($class, $column, $value) = @_;
+    if ($class->is_utf8_column($column) && !$is_utf8_function->($value)) {
+        $utf8_on_function->($value);
     }
-    return $data;
+    return $value;
 }
 
 sub utf8_off {
-    my ($class, $column, $data) = @_;
-    if ($class->is_utf8_column($column) && $is_utf8_function->($data)) {
-        $utf8_off_function->($data);
+    my ($class, $column, $value) = @_;
+    if ($class->is_utf8_column($column) && $is_utf8_function->($value)) {
+        $utf8_off_function->($value);
     }
-    return $data;
+    return $value;
 }
 
 sub trigger ($$) {
@@ -202,32 +199,34 @@ sub call_trigger {
     }
 }
 
-sub install_inflate_rule ($$) {
-    my ($rule, $install_inflate_code) = @_;
-
-    my $class = caller_class;
-    $class->inflate_rules->{_installing_rule} = $rule;
-    $install_inflate_code->();
-    delete $class->inflate_rules->{_installing_rule};
-}
-
-sub inflate (&) {
-    my $code = shift;
-
-    my $class = caller_class;
-    $class->inflate_rules->{
-        $class->inflate_rules->{_installing_rule}
-    }->{inflate} = $code;
-}
-
-sub deflate (&) {
-    my $code = shift;
-
-    my $class = caller_class;
-    $class->inflate_rules->{
-        $class->inflate_rules->{_installing_rule}
-    }->{deflate} = $code;
-}
+#sub install_inflate_rule ($$) {
+#    my ($rule, $install_inflate_code) = @_;
+#
+#    my $class = caller_class;
+#    $class->inflate_rules->{_installing_rule} = $rule;
+#    $install_inflate_code->();
+#    delete $class->inflate_rules->{_installing_rule};
+#}
+#
+#sub inflate (&) {
+#    my $code = shift;
+#
+#    my $class = caller_class;
+#    $class->inflate_rules->{
+#        $class->inflate_rules->{_installing_rule}
+#    }->{inflate} = $code;
+#}
+#
+#sub deflate (&) {
+#    my $code = shift;
+#
+#    my $class = caller_class;
+#    $class->inflate_rules->{
+#        $class->inflate_rules->{_installing_rule}
+#    }->{deflate} = $code;
+#}
+#
+#sub callback (&) { shift }
 
 sub call_inflate {
     my $class = shift;
@@ -250,8 +249,6 @@ sub _do_inflate {
         return $value;
     }
 }
-
-sub callback (&) { shift }
 
 1;
 
