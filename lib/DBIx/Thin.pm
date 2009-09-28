@@ -497,16 +497,18 @@ sub find_all {
     }
 
     return $class->find_all_by_sql(
-        $statement->as_sql,
-        $statement->bind,
-        { table => $table },
+        sql => $statement->as_sql,
+        bind => $statement->bind,
+        options => { table => $table },
     );
 }
 
 sub find_all_by_sql {
-    my ($class, $sql, $bind, $options) = @_;
-    check_select_sql($sql);
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
+    check_select_sql($args{sql});
 
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
     $class->profile($sql, $bind);
     my $sth = $class->driver->execute_select($sql, $bind);
 
@@ -516,12 +518,13 @@ sub find_all_by_sql {
     }
 
     DBIx::Thin::Iterator::StatementHandle->require or croak $@;
-    return DBIx::Thin::Iterator::StatementHandle->new(
+    my $iterator = DBIx::Thin::Iterator::StatementHandle->new(
         thin => $class,
         sth => $sth,
         # In DBIx::Thin, object_class is a schema class.
         object_class => $class->schema_class($table),
     );
+    return wantarray ? $iterator->as_array : $iterator;
 }
 
 sub find_all_with_paginator {
