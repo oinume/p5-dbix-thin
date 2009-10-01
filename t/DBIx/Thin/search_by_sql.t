@@ -10,7 +10,7 @@ my $model = Your::Model->new;
 my $counter = 0;
 my @values = ();
 for my $i (0 .. 2) {
-    my $name = 'find_all_by_sql-' . $counter++;
+    my $name = 'search_by_sql-' . $counter++;
     push @values, {
         name => $name,
         email => $name . '@test.com',
@@ -18,15 +18,15 @@ for my $i (0 .. 2) {
 }
 $model->create_all('user', values => \@values);
 
-my $iterator = $model->find_all_by_sql(
+my $iterator = $model->search_by_sql(
     sql => "SELECT * FROM user WHERE name LIKE ?",
-    bind => [ '%find_all_by_sql-0%' ],
+    bind => [ '%search_by_sql-0%' ],
 );
-ok($iterator->size > 0, 'find_all');
+ok($iterator->size > 0, 'search');
 
-my @array = $model->find_all_by_sql(
+my @array = $model->search_by_sql(
     sql => "SELECT * FROM user WHERE name LIKE ?",
-    bind => [ '%find_all_by_sql-0%' ],
+    bind => [ '%search_by_sql-0%' ],
 );
-ok(@array, 'find_all_by_sql');
+ok(@array, 'search_by_sql');
 

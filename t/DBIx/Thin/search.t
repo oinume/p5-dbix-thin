@@ -10,7 +10,7 @@ my $model = Your::Model->new;
 my $counter = 0;
 my @values = ();
 for my $i (0 .. 2) {
-    my $name = 'find_all-' . $counter++;
+    my $name = 'search-' . $counter++;
     push @values, {
         name => $name,
         email => $name . '@test.com',
@@ -18,8 +18,8 @@ for my $i (0 .. 2) {
 }
 $model->create_all('user', values => \@values);
 
-my $iterator = $model->find_all(
+my $iterator = $model->search(
     'user',
-    where => { name => { op => 'LIKE', value => 'find_all%' } }
+    where => { name => { op => 'LIKE', value => 'search%' } }
 );
-ok($iterator->size >= 3, 'find_all');
+ok($iterator->size >= 3, 'search');

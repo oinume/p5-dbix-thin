@@ -167,6 +167,10 @@ sub profile {
 
 sub driver { shift->attributes->{driver} }
 
+sub execute_select { shift->driver->execute_select(@_) }
+
+sub execute_update { shift->driver->execute_update(@_) }
+
 
 ########################################
 # ORM update methods
@@ -415,7 +419,7 @@ sub delete_by_sql {
 ########################################
 sub find {
     my ($class, $table, %args) = @_;
-    return $class->find_all(
+    return $class->search(
         $table,
         where => $args{where},
         options => { limit => 1 },
@@ -449,14 +453,14 @@ sub find_by_sql {
 sub find_by_pk {
     my ($class, $table, $pk) = @_;
     my $primary_key = $class->schema_class($table)->schema_info->{primary_key};
-    return $class->find_all(
+    return $class->search(
         $table,
         where => { $primary_key => $pk },
         options => { limit => 1 },
     )->first;
 }
 
-sub find_all {
+sub search {
     my ($class, $table, %args) = @_;
     my $where = defined $args{where} ? $args{where} : {};
     my $options = defined $args{options} ? $args{options} : {};
@@ -496,14 +500,14 @@ sub find_all {
         }
     }
 
-    return $class->find_all_by_sql(
+    return $class->search_by_sql(
         sql => $statement->as_sql,
         bind => $statement->bind,
         options => { table => $table },
     );
 }
 
-sub find_all_by_sql {
+sub search_by_sql {
     my ($class, %args) = @_;
     check_required_args([ qw/sql/ ], \%args);
     check_select_sql($args{sql});
@@ -527,11 +531,11 @@ sub find_all_by_sql {
     return wantarray ? $iterator->as_array : $iterator;
 }
 
-sub find_all_with_paginator {
+sub search_with_paginator {
     # TODO: implement
 }
 
-sub find_all_with_paginator_by_sql {
+sub search_by_sql_with_paginator {
     # TODO: implement
 }
 
@@ -673,7 +677,7 @@ DBIx::Thin - Lightweight ORMapper
  );
  
  ### select records
- my $iterator = Your::Model->find_all(
+ my $iterator = Your::Model->search(
      'user',
      where => { name => 'oinume' },
      options => { limit => 20 }
