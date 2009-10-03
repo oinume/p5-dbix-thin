@@ -190,10 +190,13 @@ sub find_by_pk {
 
 sub find {
     my ($class, $table, %args) = @_;
+    my %options = (%{ $args{options} || {} });
+    $options{limit} = 1;
+
     return $class->search(
         $table,
         where => $args{where},
-        options => { limit => 1 },
+        options => \%options,
     )->first;
 }
 
@@ -224,6 +227,8 @@ sub find_by_sql {
 sub search {
     my ($class, $table, %args) = @_;
     my $where = defined $args{where} ? $args{where} : {};
+    my $order_by = defined $args{order_by} ? $args{order_by} : {};
+    my $having = defined $args{having} ? $args{having} : {};
     my $options = defined $args{options} ? $args{options} : {};
     
     my $schema = $class->schema_class($table);
@@ -236,13 +241,14 @@ sub search {
     $options->{limit} && $statement->limit($options->{limit});
     $options->{offset} && $statement->limit($options->{offset});
 
-    if (my $terms = $options->{order_by}) {
-        unless (ref($terms) eq 'ARRAY') {
-            $terms = [ $terms ];
+    if (defined $args{order_by}) {
+        # TODO: test
+        unless (ref($order_by) eq 'ARRAY') {
+            $order_by = [ $order_by ];
         }
 
         my @orders = ();
-        for my $term (@{ $terms }) {
+        for my $term (@{ $order_by }) {
             my ($column, $case);
             if (ref($term) eq 'HASH') {
                 ($column, $case) = each %{ $term };
@@ -255,9 +261,12 @@ sub search {
         $statement->order(\@orders);
     }
 
-    if (my $terms = $options->{having}) {
-        for my $column (keys %{ $terms }) {
-            $statement->add_having($column => $terms->{$column});
+    # TODO: group_by
+
+    if (defined $args{having}) {
+        # TODO: test
+        for my $column (keys %{ $having }) {
+            $statement->add_having($column => $having->{$column});
         }
     }
 
@@ -786,7 +795,7 @@ RETURNS
 
 =head2 find_by_pk($table, $pk)
 
-Returns a object for given table.
+Returns a object of the table.
 
 ARGUMENTS
   table : table name for searching.
@@ -797,13 +806,64 @@ RETURNS
 
 EXAMPLE
   my $user = Your::Model->find('user', 1);
-  if (defined $user) {
+  if ($user) {
       print 'name = ', $user->name, "\n";
   } else {
       print 'record not found.\n';
   }
 
 
+=head2 find($table, %args)
+
+Returns a object of the table.
+
+ARGUMENTS
+  table : table name for searching
+  args : where, options
+    where : HASHREF.
+    order_by : ARRAYREF or HASHREF
+
+RETURNS
+  A row object for the table. if no records, returns undef.
+
+EXAMPLE
+  my $user = Your::Model->find(
+      'user',
+      where => {
+          name => 'hoge'
+      },
+      order_by => {
+          id => 'DESC'
+      }
+  );
+  if ($user) {
+      print 'name = ', $user->name, "\n";
+  } else {
+      print 'record not found.\n';
+  }
+
+
+=head2 find_by_sql(%args)
+
+Returns a object of the table with a raw SQL.
+
+ARGUMENTS
+  args
+    sql : SQL
+    bind : bind parameters. (ARRAYREF)
+
+RETURNS
+  A row object for the table. if no records, returns undef.
+
+EXAMPLE
+  my $user = Your::Model->find_by_sql(
+      sql => <<"EOS",
+SELECT * FROM user
+WHERE email LIKE ?
+GROUP BY name
+EOS
+      bind => [ '%@gmail.com' ]
+  );
 
 
 
