@@ -175,6 +175,137 @@ sub execute_update { shift->driver->execute_update(@_) }
 
 
 ########################################
+# ORM select methods
+########################################
+sub find_by_pk {
+    my ($class, $table, $pk) = @_;
+    my $primary_key = $class->schema_class($table)->schema_info->{primary_key};
+    return $class->search(
+        $table,
+        where => { $primary_key => $pk },
+        options => { limit => 1 },
+    )->first;
+}
+
+
+sub find {
+    my ($class, $table, %args) = @_;
+    return $class->search(
+        $table,
+        where => $args{where},
+        options => { limit => 1 },
+    )->first;
+}
+
+sub find_by_sql {
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
+    check_select_sql($args{sql});
+
+    my ($sql, $bind) = ($args{sql}, $args{bind} || []);
+    $class->profile($sql, $bind);
+    my $driver = $class->driver;
+    my $sth = $driver->execute_select($sql, $bind);
+    my $row = $sth->fetchrow_hashref;
+    unless ($row) {
+        $driver->close_sth($sth);
+        return undef;
+    }
+    $driver->close_sth($sth);
+
+    my $table = $args{table};
+    unless (defined $table) {
+        $table = $class->get_table($sql);
+    }
+
+    return $class->create_row_object($class->schema_class($table), $row);
+}
+
+sub search {
+    my ($class, $table, %args) = @_;
+    my $where = defined $args{where} ? $args{where} : {};
+    my $options = defined $args{options} ? $args{options} : {};
+    
+    my $schema = $class->schema_class($table);
+    my $columns = $options->{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
+    my $statement = $class->statement;
+    $statement->select($columns);
+    $statement->from([ $table ]);
+
+    %{$where} && $class->add_wheres($statement, $where);
+    $options->{limit} && $statement->limit($options->{limit});
+    $options->{offset} && $statement->limit($options->{offset});
+
+    if (my $terms = $options->{order_by}) {
+        unless (ref($terms) eq 'ARRAY') {
+            $terms = [ $terms ];
+        }
+
+        my @orders = ();
+        for my $term (@{ $terms }) {
+            my ($column, $case);
+            if (ref($term) eq 'HASH') {
+                ($column, $case) = each %{ $term };
+            } else {
+                $column = $term;
+                $case = 'ASC';
+            }
+            push @orders, { column => $column, desc => $case };
+        }
+        $statement->order(\@orders);
+    }
+
+    if (my $terms = $options->{having}) {
+        for my $column (keys %{ $terms }) {
+            $statement->add_having($column => $terms->{$column});
+        }
+    }
+
+    return $class->search_by_sql(
+        sql => $statement->as_sql,
+        bind => $statement->bind,
+        options => { table => $table },
+    );
+}
+
+sub search_by_sql {
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
+    check_select_sql($args{sql});
+
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
+    $class->profile($sql, $bind);
+    my $sth = $class->driver->execute_select($sql, $bind);
+
+    my $table = $options->{table};
+    unless (defined $table) {
+        $table = $class->get_table($sql);
+    }
+
+    DBIx::Thin::Iterator::StatementHandle->require or croak $@;
+    my $iterator = DBIx::Thin::Iterator::StatementHandle->new(
+        thin => $class,
+        sth => $sth,
+        # In DBIx::Thin, object_class is a schema class.
+        object_class => $class->schema_class($table),
+    );
+    return wantarray ? $iterator->as_array : $iterator;
+}
+
+sub search_with_paginator {
+    # TODO: implement
+}
+
+sub search_by_sql_with_paginator {
+    # TODO: implement
+}
+
+sub find_or_create {
+    # TODO: implement
+}
+
+
+########################################
 # ORM update methods
 ########################################
 sub create {
@@ -416,135 +547,6 @@ sub delete_by_sql {
 }
 
 
-########################################
-# ORM select methods
-########################################
-sub find {
-    my ($class, $table, %args) = @_;
-    return $class->search(
-        $table,
-        where => $args{where},
-        options => { limit => 1 },
-    )->first;
-}
-
-sub find_by_sql {
-    my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
-    check_select_sql($args{sql});
-
-    my ($sql, $bind) = ($args{sql}, $args{bind} || []);
-    $class->profile($sql, $bind);
-    my $driver = $class->driver;
-    my $sth = $driver->execute_select($sql, $bind);
-    my $row = $sth->fetchrow_hashref;
-    unless ($row) {
-        $driver->close_sth($sth);
-        return undef;
-    }
-    $driver->close_sth($sth);
-
-    my $table = $args{table};
-    unless (defined $table) {
-        $table = $class->get_table($sql);
-    }
-
-    return $class->create_row_object($class->schema_class($table), $row);
-}
-
-sub find_by_pk {
-    my ($class, $table, $pk) = @_;
-    my $primary_key = $class->schema_class($table)->schema_info->{primary_key};
-    return $class->search(
-        $table,
-        where => { $primary_key => $pk },
-        options => { limit => 1 },
-    )->first;
-}
-
-sub search {
-    my ($class, $table, %args) = @_;
-    my $where = defined $args{where} ? $args{where} : {};
-    my $options = defined $args{options} ? $args{options} : {};
-    
-    my $schema = $class->schema_class($table);
-    my $columns = $options->{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
-    my $statement = $class->statement;
-    $statement->select($columns);
-    $statement->from([ $table ]);
-
-    %{$where} && $class->add_wheres($statement, $where);
-    $options->{limit} && $statement->limit($options->{limit});
-    $options->{offset} && $statement->limit($options->{offset});
-
-    if (my $terms = $options->{order_by}) {
-        unless (ref($terms) eq 'ARRAY') {
-            $terms = [ $terms ];
-        }
-
-        my @orders = ();
-        for my $term (@{ $terms }) {
-            my ($column, $case);
-            if (ref($term) eq 'HASH') {
-                ($column, $case) = each %{ $term };
-            } else {
-                $column = $term;
-                $case = 'ASC';
-            }
-            push @orders, { column => $column, desc => $case };
-        }
-        $statement->order(\@orders);
-    }
-
-    if (my $terms = $options->{having}) {
-        for my $column (keys %{ $terms }) {
-            $statement->add_having($column => $terms->{$column});
-        }
-    }
-
-    return $class->search_by_sql(
-        sql => $statement->as_sql,
-        bind => $statement->bind,
-        options => { table => $table },
-    );
-}
-
-sub search_by_sql {
-    my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
-    check_select_sql($args{sql});
-
-    my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
-    $class->profile($sql, $bind);
-    my $sth = $class->driver->execute_select($sql, $bind);
-
-    my $table = $options->{table};
-    unless (defined $table) {
-        $table = $class->get_table($sql);
-    }
-
-    DBIx::Thin::Iterator::StatementHandle->require or croak $@;
-    my $iterator = DBIx::Thin::Iterator::StatementHandle->new(
-        thin => $class,
-        sth => $sth,
-        # In DBIx::Thin, object_class is a schema class.
-        object_class => $class->schema_class($table),
-    );
-    return wantarray ? $iterator->as_array : $iterator;
-}
-
-sub search_with_paginator {
-    # TODO: implement
-}
-
-sub search_by_sql_with_paginator {
-    # TODO: implement
-}
-
-sub find_or_create {
-    # TODO: implement
-}
-
 sub create_row_object {
     my ($class, $object_class, $hashref) = @_;
 
@@ -740,10 +742,11 @@ After calling load_schemas, you don't need to use your schema class like 'use Yo
 
 Creates an instance of DBIx::Thin.
 
-Arguments:
+ARGUMENTS
   connection_info : dsn, username, password, connect_options
 
-Example:
+EXAMPLE
+  use Carp ();
   use Your::Model;
   
   my $model = Your::Model->new({
@@ -754,6 +757,55 @@ Example:
           HandleError => sub { Carp::croak(shift) },
        },
   });
+
+
+
+=head2 execute_select($sql, $bind)
+
+Executes a query for selection. This is low level API.
+
+ARGUMENTS
+  sql : SQL
+  bind : bind parameters
+
+RETURNS
+  sth object
+
+
+=head2 execute_update($sql, $bind)
+
+Executes a query for updating. (INSERT, UPDATE, DELETE or others)  This is low level API.
+
+ARGUMENTS
+  sql : SQL
+  bind : bind parameters
+
+RETURNS
+  sth object
+
+
+=head2 find_by_pk($table, $pk)
+
+Returns a object for given table.
+
+ARGUMENTS
+  table : table name for searching.
+  pk : Primary key to find object.
+
+RETURNS
+  A row object for the table. if no records, returns undef.
+
+EXAMPLE
+  my $user = Your::Model->find('user', 1);
+  if (defined $user) {
+      print 'name = ', $user->name, "\n";
+  } else {
+      print 'record not found.\n';
+  }
+
+
+
+
 
 =head1 AUTHOR
 

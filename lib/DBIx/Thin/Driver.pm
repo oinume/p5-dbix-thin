@@ -195,18 +195,17 @@ sub dbh {
 sub _dbh { return shift->{dbh} }
 
 
-=head2 execute_update($sql, $bind)
+=head2 execute_select($sql, $bind)
 
-Executes a query for updating. (INSERT, UPDATE, DELETE)
+Executes a query for selection.
 
-PARAMETERS
-  sql: query to be executed
-  bind: bind parameters (ARRAYREF)
+ARGUMENTS
+  sql : query to be executed
+  bind : bind parameters (ARRAYREF)
 
 =cut
-sub execute_update {
+sub execute_select {
     my ($self, $sql, $bind) = @_;
-
     my $sth;
     eval {
         $sth = $self->dbh->prepare($sql);
@@ -225,17 +224,18 @@ sub execute_update {
 }
 
 
-=head2 execute_select($sql, $bind)
+=head2 execute_update($sql, $bind)
 
-Executes a query for selection.
+Executes a query for updating. (INSERT, UPDATE, DELETE)
 
-PARAMETERS
-  sql: query to be executed
-  bind: bind parameters (ARRAYREF)
+ARGUMENTS
+  sql : query to be executed
+  bind : bind parameters (ARRAYREF)
 
 =cut
-sub execute_select {
+sub execute_update {
     my ($self, $sql, $bind) = @_;
+
     my $sth;
     eval {
         $sth = $self->dbh->prepare($sql);
