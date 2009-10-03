@@ -23,3 +23,17 @@ my $iterator = $model->search(
     where => { name => { op => 'LIKE', value => 'search%' } }
 );
 ok($iterator->size >= 3, 'search');
+
+my $order_by_iterator = $model->search(
+    'user',
+    order_by => [
+        { id => 'DESC' },
+    ],
+    options => { limit => 3 },
+);
+my @ids = ();
+while (my $user = $order_by_iterator->next) {
+    push @ids, $user->id;
+}
+ok($ids[0] > $ids[1], 'search (order_by)');
+ok($ids[1] > $ids[2], 'search (order_by)');

@@ -66,11 +66,7 @@ sub caller_class {
 
 sub table2schema_class($) {
     my $table = shift;
-    my $schema_class = $table2schema_class{$table};
-    unless ($schema_class) {
-        croak "Cannot find shcema_class for '$table'";
-    }
-    return $schema_class;
+    return $table2schema_class{$table};
 }
 
 sub install_table ($$) {

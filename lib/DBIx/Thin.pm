@@ -136,7 +136,6 @@ sub schema_class {
     unless ($schema) {
         $schema = DBIx::Thin::Schema::table2schema_class($table);
         unless ($schema) {
-            # TODO: test here
             $schema = 'DBIx::Thin::Row';
         }
         $class->attributes->{schemas}->{$table} = $schema;
@@ -242,7 +241,6 @@ sub search {
     $options->{offset} && $statement->limit($options->{offset});
 
     if (defined $args{order_by}) {
-        # TODO: test
         unless (ref($order_by) eq 'ARRAY') {
             $order_by = [ $order_by ];
         }
@@ -793,6 +791,10 @@ RETURNS
   sth object
 
 
+#--------------------------------------#
+# ORM methods
+#--------------------------------------#
+
 =head2 find_by_pk($table, $pk)
 
 Returns a object of the table.
@@ -865,6 +867,36 @@ EOS
       bind => [ '%@gmail.com' ]
   );
 
+
+=head2 search($table, %args)
+
+Returns an iterator of selected records.
+
+ARGUMENTS
+  table : table name for searching
+  args : HASH
+    where : HASHREF
+    order_by : ARRAYREF or HASHREF
+    having : HAVING
+    options : limit, offset (HASHREF)
+
+RETURNS
+  An iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)
+
+EXAMPLE
+  my $iterator = Your::Model->search(
+      'user',
+      where => {
+          name => { op => 'LIKE', value => 'fuga%' }
+      },
+      order_by => [
+          { id => 'DESC' }
+      ],
+      options => { limit => 20 },
+  );
+  while (my $user = $iterator->next) {
+      print "id = ", $user->id, "\n";
+  }
 
 
 =head1 AUTHOR
