@@ -110,11 +110,15 @@ sub new {
     my $profiler = delete $attr->{profiler};
     
     my $self = bless Storable::dclone($attr), $class;
-    my $driver_clone = $driver->clone;
-    if ($connection_info) {
-        $driver_clone->connection_info($connection_info);
+    my $driver_clone = undef;
+    if (defined $connection_info) {
+        # If connection_info given, we must re-create a Driver's instance
+        # becase dsn would be changed (e.g mysql -> SQLite)
+        $driver_clone = DBIx::Thin::Driver->create($connection_info);
         $driver_clone->reconnect;
-        # TODO: test
+    }
+    else {
+        $driver_clone = $driver->clone;
     }
 
     $self->attributes->{driver} = $driver_clone;
@@ -629,20 +633,26 @@ DBIx::Thin - Lightweight ORMapper
 
 =head1 SYNOPSIS
 
- ### Your/Model.pm
+ #-----------------------#
+ # Your/Model.pm
+ #-----------------------#
  package Your::Model;
  
  use DBIx::Thin;
  
  DBIx::Thin->setup(
-     dsn => 'dbi:SQLite:your_project.sqlite3',
+     dsn => 'DBI:SQLite:your_project.sqlite3',
      username => '',
      password => '',
  );
+ DBIx::Thin->load_schemas; # Load defined schemas
  
  1;
 
- ### Your/Model/User.pm
+ #-----------------------#
+ # Your/Model/User.pm
+ # schema class for table 'user'
+ #-----------------------#
  package Your::Model::User;
  use DBIx::Thin::Schema;
  use base qw/DBIx::Thin::Row/;
@@ -654,6 +664,23 @@ DBIx::Thin - Lightweight ORMapper
          id    => { type => Integer },
          name  => { type => String },
          email => { type => String, utf8 => 0 };
+ };
+
+ #-----------------------#
+ # Your/Model/Status.pm
+ # schema class for table 'status'
+ #-----------------------#
+ package Your::Model::Status;
+ use DBIx::Thin::Schema;
+ use base qw/DBIx::Thin::Row/;
+ 
+ install_table 'status' => schema {
+     primary_key 'id',
+     defaults string_is_utf8 => 1;
+     columns 
+         id    => { type => Integer },
+         text  => { type => String },
+         created_at => { type => Datetime },
  };
  
  1;
@@ -698,6 +725,35 @@ DBIx::Thin - Lightweight ORMapper
  ### delete a record with primary key
  Your::Model->delete('user', 10);
 
+
+=head1 METHODS
+
+=head2 setup(%)
+
+
+=head2 load_schemas()
+
+Loads all defined schemas automatically.
+After calling load_schemas, you don't need to use your schema class like 'use Your::Model::User'.
+
+=head2 new($)
+
+Creates an instance of DBIx::Thin.
+
+Arguments:
+  connection_info : dsn, username, password, connect_options
+
+Example:
+  use Your::Model;
+  
+  my $model = Your::Model->new({
+      dsn => 'DBI:mysql:yourdb:localhost',
+      username => 'root',
+      password => 'your password',
+      connect_options => {
+          HandleError => sub { Carp::croak(shift) },
+       },
+  });
 
 =head1 AUTHOR
 
