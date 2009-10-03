@@ -12,8 +12,6 @@ use DBIx::Thin::Schema;
 use DBIx::Thin::Statement;
 use DBIx::Thin::Utils qw/check_required_args/;
 
-# TODO: define stringify method
-
 our $VERSION = '0.01';
 
 sub import {
@@ -550,10 +548,8 @@ sub create_row_object {
         _values => $hashref,
         _thin => $class,
     );
-    my $object = $object_class->new(%values);
-    $object->setup;
-    
-    return $object;
+    $object_class->require or croak $@;
+    return $object_class->new(%values)->setup;
 }
 
 sub get_table {

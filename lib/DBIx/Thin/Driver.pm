@@ -287,7 +287,7 @@ sub bulk_insert {
     my $inserted = 0;
     for my $value ( @{$values} ) {
 # TODO: adjust trigger
-        $model->create($table, data => $value);
+        $model->create($table, values => $value);
         $inserted++;
     }
 

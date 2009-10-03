@@ -43,6 +43,8 @@ sub setup {
 
     $self->{_get_value_cached} = {};
     $self->{_dirty_columns} = {};
+
+    return $self;
 }
 
 sub _lazy_getter {
