@@ -35,5 +35,14 @@ my @ids = ();
 while (my $user = $order_by_iterator->next) {
     push @ids, $user->id;
 }
+# check id DESC
 ok($ids[0] > $ids[1], 'search (order_by)');
 ok($ids[1] > $ids[2], 'search (order_by)');
+
+my @array = $model->search(
+    'user',
+    order_by => [ 'id' ],
+    options => { limit => 3 },
+);
+# check id ASC
+ok($array[0]->id < $array[1]->id, 'search (list context)');

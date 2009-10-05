@@ -839,9 +839,9 @@ EXAMPLE
       }
   );
   if ($user) {
-      print 'name = ', $user->name, "\n";
+      print "name = ", $user->name, "\n";
   } else {
-      print 'record not found.\n';
+      print "record not found.\n";
   }
 
 
@@ -860,17 +860,17 @@ RETURNS
 EXAMPLE
   my $user = Your::Model->find_by_sql(
       sql => <<"EOS",
-SELECT * FROM user
-WHERE email LIKE ?
-GROUP BY name
-EOS
+  SELECT * FROM user
+  WHERE email LIKE ?
+  GROUP BY name
+  EOS
       bind => [ '%@gmail.com' ]
   );
 
 
 =head2 search($table, %args)
 
-Returns an iterator of selected records.
+Returns an iterator or an array of selected records.
 
 ARGUMENTS
   table : table name for searching
@@ -881,7 +881,8 @@ ARGUMENTS
     options : limit, offset (HASHREF)
 
 RETURNS
-  An iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)
+  In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
+  
 
 EXAMPLE
   my $iterator = Your::Model->search(
@@ -897,6 +898,55 @@ EXAMPLE
   while (my $user = $iterator->next) {
       print "id = ", $user->id, "\n";
   }
+  
+  # In list context
+  my @users = Your::Model->search(
+      'user',
+      where => {
+          name => 'fuga',
+      }
+  );
+
+
+=head2 search_by_sql($table, %args)
+
+Returns an iterator or an array of selected records with a raw SQL.
+
+ARGUMENTS
+  args : HASH
+    sql : SQL
+    bind : bind parameters
+    options : HASHREF
+      table : table for selection (used for determining a mapped object)
+
+RETURNS
+  In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the SQL. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
+
+EXAMPLE
+  my $iterator = Your::Model->search_by_sql(
+      sql => <<"EOS",
+  SELECT * FROM user
+  WHERE name LIKE ?
+  ORDER BY id DESC
+  EOS
+      bind => [ '%hoge%' ]
+      options => { table => 'user' },
+  );
+  while (my $user = $iterator->next) {
+      print "id = ", $user->id, "\n";
+  }
+  
+  # In list context
+  my @users = Your::Model->search_by_sql(
+      sql => <<"EOS",
+  SELECT * FROM user
+  WHERE name LIKE ?
+  ORDER BY id DESC
+  EOS
+      bind => [ '%hoge%' ]
+      options => { table => 'user' },
+  );
+
 
 
 =head1 AUTHOR
