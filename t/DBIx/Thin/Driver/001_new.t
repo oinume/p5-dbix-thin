@@ -11,7 +11,7 @@ my %values = (
     username => 'root',
     password => 'hoge',
 );
-my $driver = DBIx::Thin::Driver->new(\%values);
+my $driver = DBIx::Thin::Driver->new(%values);
 while (my ($k, $v) = each %values) {
     is($driver->{$k}, $values{$k}, "new - $k");
 }

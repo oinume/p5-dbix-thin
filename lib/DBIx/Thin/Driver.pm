@@ -32,21 +32,21 @@ Creates an instance.
 
 =cut
 sub new {
-    my ($class, $args) = @_;
+    my ($class, %args) = @_;
     return bless {
-        dsn => $args->{dsn},
-        username => $args->{username},
-        password => $args->{password},
-        connect_options => $args->{connect_options},
+        dsn => $args{dsn},
+        username => $args{username},
+        password => $args{password},
+        connect_options => $args{connect_options},
     }, shift;
 }
 
 
-=head2 create($args)
+=head2 create(%args)
 
-Returns an instance of DBIx::Thin::Driver s sub-class.
+Returns an instance of DBIx::Thin::Driver's sub-class.
 
-PARAMETERS
+ARGUMENTS
 
   dsn: Datasource
   username: username
@@ -57,23 +57,23 @@ PARAMETERS
 =cut
 
 sub create {
-    my ($class, $args) = @_;
+    my ($class, %args) = @_;
     my $type = '';
-    if (defined $args->{dbh}) {
-        $type = $args->{dbh}->{Driver}->{Name};
-    } elsif (defined $args->{dsn}) {
-        (undef, $type, undef) = DBI->parse_dsn($args->{dsn})
-            or croak "Failed to parse DSN: $args->{dsn}";
+    if (defined $args{dbh}) {
+        $type = $args{dbh}->{Driver}->{Name};
+    } elsif (defined $args{dsn}) {
+        (undef, $type, undef) = DBI->parse_dsn($args{dsn})
+            or croak "Failed to parse DSN: $args{dsn}";
     }
     $type = lc $type;
     unless ($AVAILABLE_DRIVERS{$type}) {
         # No suitable driver found.
-        return __PACKAGE__->new($args);
+        return __PACKAGE__->new(%args);
     }
 
     my $driver = 'DBIx::Thin::Driver::' . $AVAILABLE_DRIVERS{$type};
     $driver->require or croak $@;
-    return $driver->new($args);
+    return $driver->new(%args);
 }
 
 sub available_drivers { return %AVAILABLE_DRIVERS }

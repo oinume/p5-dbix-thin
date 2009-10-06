@@ -24,7 +24,7 @@ sub setup {
 
     my $caller = caller;
     my $driver = defined $args{driver} ?
-        delete $args{driver} : DBIx::Thin::Driver->create(\%args);
+        delete $args{driver} : DBIx::Thin::Driver->create(%args);
     my $attributes = +{
         driver          => $driver,
         schemas         => {},
@@ -103,7 +103,7 @@ sub load_schemas {
 }
 
 sub new {
-    my ($class, $connection_info) = @_;
+    my ($class, %args) = @_;
     my $attr = $class->attributes;
 
     my $driver   = delete $attr->{driver};
@@ -111,10 +111,10 @@ sub new {
     
     my $self = bless Storable::dclone($attr), $class;
     my $driver_clone = undef;
-    if (defined $connection_info) {
+    if (keys %args) {
         # If connection_info given, we must re-create a Driver's instance
         # becase dsn would be changed (e.g mysql -> SQLite)
-        $driver_clone = DBIx::Thin::Driver->create($connection_info);
+        $driver_clone = DBIx::Thin::Driver->create(%args);
         $driver_clone->reconnect;
     }
     else {
@@ -745,14 +745,19 @@ DBIx::Thin - Lightweight ORMapper
 Loads all defined schemas automatically.
 After calling load_schemas, you don't need to use your schema class like 'use Your::Model::User'.
 
-=head2 new($)
+=head2 new(%args)
 
 Creates an instance of DBIx::Thin.
 
 ARGUMENTS
-  connection_info : dsn, username, password, connect_options
+
+  dsn: Datasource
+  username: connect username
+  password: connect password
+  connect_options: connect options
 
 EXAMPLE
+
   use Carp ();
   use Your::Model;
   
@@ -766,17 +771,16 @@ EXAMPLE
   });
 
 
-
 =head2 execute_select($sql, $bind)
 
 Executes a query for selection. This is low level API.
 
 ARGUMENTS
+
   sql : SQL
   bind : bind parameters
 
-RETURNS
-  sth object
+RETURNS : sth object
 
 
 =head2 execute_update($sql, $bind)
@@ -784,29 +788,29 @@ RETURNS
 Executes a query for updating. (INSERT, UPDATE, DELETE or others)  This is low level API.
 
 ARGUMENTS
+
   sql : SQL
   bind : bind parameters
 
-RETURNS
-  sth object
+RETURNS : sth object
 
 
-#--------------------------------------#
-# ORM methods
-#--------------------------------------#
+#--- ORM methods ---#
+
 
 =head2 find_by_pk($table, $pk)
 
 Returns a object of the table.
 
 ARGUMENTS
-  table : table name for searching.
+
+  table : Table name for searching.
   pk : Primary key to find object.
 
-RETURNS
-  A row object for the table. if no records, returns undef.
+RETURNS : A row object for the table. if no records, returns undef.
 
 EXAMPLE
+
   my $user = Your::Model->find('user', 1);
   if ($user) {
       print 'name = ', $user->name, "\n";
@@ -820,15 +824,16 @@ EXAMPLE
 Returns a object of the table.
 
 ARGUMENTS
-  table : table name for searching
+
+  table : Table name for searching
   args : where, options
     where : HASHREF.
     order_by : ARRAYREF or HASHREF
 
-RETURNS
-  A row object for the table. if no records, returns undef.
+RETURNS : A row object for the table. if no records, returns undef.
 
 EXAMPLE
+
   my $user = Your::Model->find(
       'user',
       where => {
@@ -850,14 +855,15 @@ EXAMPLE
 Returns a object of the table with a raw SQL.
 
 ARGUMENTS
+
   args
     sql : SQL
     bind : bind parameters. (ARRAYREF)
 
-RETURNS
-  A row object for the table. if no records, returns undef.
+RETURNS : A row object for the table. if no records, returns undef.
 
 EXAMPLE
+
   my $user = Your::Model->find_by_sql(
       sql => <<"EOS",
   SELECT * FROM user
@@ -873,18 +879,18 @@ EXAMPLE
 Returns an iterator or an array of selected records.
 
 ARGUMENTS
-  table : table name for searching
+
+  table : Table name for searching
   args : HASH
     where : HASHREF
     order_by : ARRAYREF or HASHREF
     having : HAVING
     options : limit, offset (HASHREF)
 
-RETURNS
-  In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
-  
+RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
 
 EXAMPLE
+
   my $iterator = Your::Model->search(
       'user',
       where => {
@@ -913,16 +919,17 @@ EXAMPLE
 Returns an iterator or an array of selected records with a raw SQL.
 
 ARGUMENTS
+
   args : HASH
     sql : SQL
     bind : bind parameters
     options : HASHREF
-      table : table for selection (used for determining a mapped object)
+      table : Table for selection (used for determining a mapped object)
 
-RETURNS
-  In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the SQL. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
+RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the SQL. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
 
 EXAMPLE
+
   my $iterator = Your::Model->search_by_sql(
       sql => <<"EOS",
   SELECT * FROM user
@@ -947,6 +954,25 @@ EXAMPLE
       options => { table => 'user' },
   );
 
+
+=head2 create($table, %args)
+
+
+ARGUMENTS
+
+  table : Table name
+  args :
+    values : HASHREF. column values for a new record.
+
+EXAMPLE
+
+  my $new_user = Your::Model->create(
+      'user',
+      values => {
+          name => 'testname',
+          email => 'testname@hoge.com',
+      }
+  );
 
 
 =head1 AUTHOR
