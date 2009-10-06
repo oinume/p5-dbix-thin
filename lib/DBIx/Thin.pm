@@ -778,7 +778,7 @@ Executes a query for selection. This is low level API.
 ARGUMENTS
 
   sql : SQL
-  bind : bind parameters
+  bind : bind parameters. ARRAYREF
 
 RETURNS : sth object
 
@@ -790,7 +790,7 @@ Executes a query for updating. (INSERT, UPDATE, DELETE or others)  This is low l
 ARGUMENTS
 
   sql : SQL
-  bind : bind parameters
+  bind : bind parameters. ARRAYREF
 
 RETURNS : sth object
 
@@ -826,8 +826,8 @@ Returns a object of the table.
 ARGUMENTS
 
   table : Table name for searching
-  args : where, options
-    where : HASHREF.
+  args : HASH
+    where : HASHREF
     order_by : ARRAYREF or HASHREF
 
 RETURNS : A row object for the table. if no records, returns undef.
@@ -856,7 +856,7 @@ Returns a object of the table with a raw SQL.
 
 ARGUMENTS
 
-  args
+  args : HASH
     sql : SQL
     bind : bind parameters. (ARRAYREF)
 
@@ -885,7 +885,9 @@ ARGUMENTS
     where : HASHREF
     order_by : ARRAYREF or HASHREF
     having : HAVING
-    options : limit, offset (HASHREF)
+    options : HASHREF
+      limit : max records number
+      offset : offset
 
 RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
 
@@ -922,7 +924,7 @@ ARGUMENTS
 
   args : HASH
     sql : SQL
-    bind : bind parameters
+    bind : bind parameters. ARRAYREF
     options : HASHREF
       table : Table for selection (used for determining a mapped object)
 
@@ -961,8 +963,8 @@ EXAMPLE
 ARGUMENTS
 
   table : Table name
-  args :
-    values : HASHREF. column values for a new record.
+  args : HASH
+    values : Column values for a new record. HASHREF
 
 EXAMPLE
 
@@ -973,6 +975,21 @@ EXAMPLE
           email => 'testname@hoge.com',
       }
   );
+
+
+=head2 create_by_sql(%args)
+
+Executes a query for insertion. This is low level API.
+
+ARGUMENTS
+
+  sql : SQL
+  bind : bind parameters
+  options : HASHREF
+    fetch_created_row : Boolean. Fetch a newly created row
+
+RETURNS : A row object
+
 
 
 =head1 AUTHOR
