@@ -959,12 +959,15 @@ EXAMPLE
 
 =head2 create($table, %args)
 
+Creates a new record.
 
 ARGUMENTS
 
   table : Table name
   args : HASH
     values : Column values for a new record. HASHREF
+
+RETURNS : A row object
 
 EXAMPLE
 
@@ -983,12 +986,65 @@ Executes a query for insertion. This is low level API.
 
 ARGUMENTS
 
-  sql : SQL
-  bind : bind parameters
-  options : HASHREF
-    fetch_created_row : Boolean. Fetch a newly created row
+  args: HASH
+    sql : SQL
+    bind : bind parameters. ARRAYREF
+    options : HASHREF
+      fetch_created_row : Boolean. Fetch a newly created row
 
 RETURNS : A row object
+
+
+
+=head2 create_all($table, %args)
+
+Creates new records.
+
+ARGUMENTS
+
+  table : Table name
+  args : HASH
+    values : Column values for a new record. HASHREF
+
+RETURNS : Created record number.
+
+EXAMPLE
+
+  my $created_count = Your::Model->create_all(
+      'user',
+      values => [
+          { name => 'test1', email => 'test1@hoge.com' },
+          { name => 'test2', email => 'test2@hoge.com' },
+      ],
+  );
+
+
+=head2 update($table, %args)
+
+Updates records.
+
+ARGUMENTS
+
+  table : Table name
+  args : HASH
+    values : Updating values.
+    where : HASHREF
+
+RETURNS : Updated row number.
+
+EXAMPLE
+
+  my $updated_count = Your::Mode->update(
+      'user',
+      values => {
+          name => 'New name',
+      },
+      where => {
+          id => 1,
+      },
+  );
+
+
 
 
 
