@@ -1,5 +1,5 @@
 POD ##########################
-DBIx::Thin
+o DBIx::Thin
 o DBIx::Thin::Accessor
 o DBIx::Thin::Driver
 o DBIx::Thin::Iterator
