@@ -56,7 +56,7 @@ sub setup {
 }
 
 
-sub load_schemas {
+sub load_schema {
     my ($class, %args) = @_;
     # schema_directory must be 'lib/Your/Model' for lib/Your/Model.pm
     my $schema_directory = $args{schema_directory};
@@ -296,6 +296,7 @@ sub search_by_sql {
         # In DBIx::Thin, object_class is a schema class.
         object_class => $class->schema_class($table),
     );
+
     return wantarray ? $iterator->as_array : $iterator;
 }
 
@@ -541,12 +542,15 @@ sub delete_all {
 
 
 sub delete_by_sql {
-    my ($class, $sql, $bind) = @_;
+    my ($class, %args) = @_;
+    check_required_args([ qw/sql/ ], \%args);
 
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind}, $args{options});
+    $options ||= {};
     $class->profile($sql, $bind);
+
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, $bind);
-#    $class->call_schema_trigger('post_delete_by_sql', $schema, $table);
     my $deleted = $sth->rows;
     $driver->close_sth($sth);
     
@@ -654,7 +658,7 @@ DBIx::Thin - Lightweight ORMapper
      username => '',
      password => '',
  );
- DBIx::Thin->load_schemas; # Load defined schemas
+ DBIx::Thin->load_schema; # Load defined schemas
  
  1;
 
@@ -740,10 +744,10 @@ DBIx::Thin - Lightweight ORMapper
 =head2 setup(%)
 
 
-=head2 load_schemas()
+=head2 load_schema()
 
 Loads all defined schemas automatically.
-After calling load_schemas, you don't need to use your schema class like 'use Your::Model::User'.
+After calling load_schema, you don't need to use your schema class like 'use Your::Model::User'.
 
 =head2 new(%args)
 
@@ -995,7 +999,6 @@ ARGUMENTS
 RETURNS : A row object
 
 
-
 =head2 create_all($table, %args)
 
 Creates new records.
@@ -1030,7 +1033,7 @@ ARGUMENTS
     values : Updating values.
     where : HASHREF
 
-RETURNS : Updated row number.
+RETURNS : Updated row count
 
 EXAMPLE
 
@@ -1043,6 +1046,74 @@ EXAMPLE
           id => 1,
       },
   );
+
+
+=head2 update_by_sql(%args)
+
+Executes a query for updating. This is low level API.
+
+ARGUMENTS
+
+  args: HASH
+    sql : SQL
+    bind : bind parameters. ARRAYREF
+    options : HASHREF
+
+RETURNS : Updated row count
+
+
+=head2 delete($table, $primary_key_value)
+
+Delete a new record.
+
+ARGUMENTS
+
+  table : Table name
+  primary_key_value : Primary key value for a deleted record.
+
+RETURNS : Deleted row count
+
+EXAMPLE
+
+  my $deleted = Your::Model->delete('user', 1);
+
+
+=head2 delete_all($table, %args)
+
+Delete records.
+
+ARGUMENTS
+
+  table : Table name
+  args : HASH
+    where : HASHREF. REQUIRED.
+
+RETURNS : Deleted row count
+
+EXAMPLE
+
+  my $deleted_count = Your::Model->delete_all(
+      'user',
+      where => {
+          name => 'oinume'
+      }
+  );
+
+
+=head2 delete_by_sql(%args)
+
+Executes a query for deleting. This is low level API.
+
+ARGUMENTS
+
+  args: HASH
+    sql : SQL
+    bind : bind parameters. ARRAYREF
+    options : HASHREF
+
+RETURNS : Deleted row count
+
+
 
 
 
