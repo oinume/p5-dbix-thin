@@ -7,11 +7,11 @@ use Test::More tests => 2;
 use Your::Model;
 
 eval {
-    Your::Model->load_schemas(schema_directory => "$Bin/../../lib/Your/Model");
+    Your::Model->load_schema(schema_directory => "$Bin/../../lib/Your/Model");
 };
 ok(!$@, 'load_schema');
 
 eval {
-    Your::Model->load_schemas(schema_directory => "$Bin/../../lib/Your/Model/NotFound");
+    Your::Model->load_schema(schema_directory => "$Bin/../../lib/Your/Model/NotFound");
 };
 ok($@, 'load_schema (error)');
