@@ -291,7 +291,7 @@ sub search_by_sql {
 
     DBIx::Thin::Iterator::StatementHandle->require or croak $@;
     my $iterator = DBIx::Thin::Iterator::StatementHandle->new(
-        thin => $class,
+        model => $class,
         sth => $sth,
         # In DBIx::Thin, object_class is a schema class.
         object_class => $class->schema_class($table),

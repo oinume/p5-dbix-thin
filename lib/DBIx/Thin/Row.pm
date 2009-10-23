@@ -105,10 +105,10 @@ sub get_raw_values {
 
 
 sub set {
-    my ($self, $args) = @_;
+    my ($self, %args) = @_;
 
-    for my $col (keys %$args) {
-        $self->{_values}->{$col} = $args->{$col};
+    for my $col (keys %args) {
+        $self->{_values}->{$col} = $args{$col};
         delete $self->{_get_value_cached}->{$col};
         $self->{_dirty_columns}->{$col} = 1;
     }
@@ -116,46 +116,45 @@ sub set {
 
 sub get_dirty_columns {
     my $self = shift;
-    my %rows = map {$_ => $self->get_value($_)}
-               keys %{$self->{_dirty_columns}};
+    my %rows = map { $_ => $self->get_value($_) } keys %{$self->{_dirty_columns}};
     return \%rows;
 }
 
 sub create {
     my $self = shift;
 # TODO: implement find_or_create
-    return $self->{_model}->find_or_create($self->{_table}, $self->get_values);
+    return $self->model->find_or_create($self->table, $self->get_values);
 }
 
 sub update {
-    my ($self, $data) = @_;
-    my $table = $self->get_table;
-    $data ||= $self->get_dirty_columns;
+    my ($self, $values) = @_;
+    my $table = $self->table;
+    $values ||= $self->get_dirty_columns;
     my $where = $self->update_or_delete_condition($table);
-    $self->set($data);
-    return $self->{_model}->update(
+    $self->set($values);
+    return $self->model->update(
         $table,
-        data => $data,
+        values => $values,
         where => $where
     );
 }
 
 sub delete {
     my ($self) = @_;
-    my $table = $self->get_table;
+    my $table = $self->table;
     my $where = $self->update_or_delete_condition($table);
     my $primary_key = $self->schema_info->{primary_key};
-    return $self->{_model}->delete($table, $where->{$primary_key});
+    return $self->model->delete($table, $where->{$primary_key});
 }
 
-sub update_or_delete_condion {
+sub update_or_delete_condition {
     my ($self, $table) = @_;
 
     unless ($table) {
         croak "no table info";
     }
 
-    my $schema = $self->{_model}->schema_class($table);
+    my $schema = $self->model->schema_class($table);
     unless ($schema) {
         croak "Unknown table: $table";
     }
@@ -173,7 +172,7 @@ sub update_or_delete_condion {
     return { $primary_key => $self->$primary_key };
 }
 
-sub get_table {
+sub table {
     my ($self) = @_;
     unless ($self->can('schema_info')) {
         croak "Cannot call method 'schema_info' of '@{[ __PACKAGE__ ]}'";
@@ -181,6 +180,8 @@ sub get_table {
     my $table = $self->schema_info->{table};
     return $table;
 }
+
+sub model { shift->{_model} }
 
 1; # base code from DBIx::Skinny::Row
 

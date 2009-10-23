@@ -8,12 +8,11 @@ o DBIx::Thin::Iterator::StatementHandle
 DBIx::Thin::Profiler
 DBIx::Thin::Row
 DBIx::Thin::Schema
-DBIx::Thin::Statement
+o DBIx::Thin::Statement
 
 Test #########################
 # DBIx::Thin
 setup
-new
 driver
 
 # DBIx::Thin::Statement
