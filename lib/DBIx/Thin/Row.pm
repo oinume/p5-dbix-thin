@@ -48,19 +48,19 @@ sub setup {
 }
 
 sub _lazy_getter {
-    my ($self, $col) = @_;
+    my ($self, $column) = @_;
 
     return sub {
         my $self = shift;
 
-        unless ($self->{_get_value_cached}->{$col}) {
-            my $value = $self->get_value($col);
+        unless ($self->{_get_value_cached}->{$column}) {
+            my $value = $self->get_value($column);
             # TODO: class check
             if ($self->can('call_inflate')) {
-                $self->{_get_value_cached}->{$col} = $self->call_inflate($col, $value);
+                $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
             }
         }
-        $self->{_get_value_cached}->{$col};
+        $self->{_get_value_cached}->{$column};
     };
 }
 
@@ -187,43 +187,62 @@ sub model { shift->{_model} }
 
 __END__
 
+
 =head1 NAME
 
 DBIx::Thin::Row - DBIx::Thin's Row class
 
+
+=head1 SYNOPSIS
+
+  my $user = Your::Model->find_by_pk('user', 1);
+  # $user is an instance of sub-class of DBIx::Thin::Row
+  print 'id: ', $user->id, "\n";
+  print 'name: ', $user->name, "\n";
+
+
 =head1 METHODS
 
-=head2 get_value
+=head2 get_value($column)
 
-    my $val = $row->get_value($col);
+Get a column value from a row object without inflating.
 
-get a column value from a row object.
+EXAMPLE
 
-=head2 get_values
+  my $id = $row->get_value('id');
 
-    my %data = $row->get_values;
+
+=head2 get_values()
 
 Does C<get_value>, for all column values.
 
-=head2 set
+  my %data = $row->get_values;
 
-    $row->set({$col => $val});
+
+=head2 set(%values)
 
 set columns data.
 
-=head2 get_dirty_columns
+  $row->set($column => $value);
 
-returns those that have been changed.
 
-=head2 insert
+
+=head2 get_dirty_columns()
+
+Returns those that have been changed.
+
+
+=head2 create
 
 insert row data. call find_or_create method.
 
-=head2 updat
+
+=head2 update
 
 update is executed for instance record.
 
 It works by schema in which primary key exists.
+
 
 =head2 delete
 
