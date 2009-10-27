@@ -133,7 +133,7 @@ sub columns (@) {
 }
 
 sub Integer { 'integer' }
-sub Declimal { 'declimal' }
+sub Decimal { 'decimal' }
 sub String { 'string' }
 sub Binary { 'binary' }
 sub Boolean { 'boolean' }

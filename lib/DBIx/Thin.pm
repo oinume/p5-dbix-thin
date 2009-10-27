@@ -223,6 +223,7 @@ sub find_by_sql {
     return $class->create_row_object($class->schema_class($table), $row);
 }
 
+
 sub search {
     my ($class, $table, %args) = @_;
     my $where = defined $args{where} ? $args{where} : {};
@@ -275,6 +276,27 @@ sub search {
     );
 }
 
+=pod
+
+TODO: inflate_columns, utf8_columns
+
+SELECT a.id, b.name FROM a
+LEFT JOIN b ON a.id = b.id
+
+search_by_sql(
+    sql => ...
+    bind => ...,
+    options => {
+        inflate => {
+            user => [ qw(created_at) ],
+        },
+        utf8 => {
+            user => [ qw(name) ],
+        },
+    }
+);
+
+=cut
 sub search_by_sql {
     my ($class, %args) = @_;
     check_required_args([ qw/sql/ ], \%args);

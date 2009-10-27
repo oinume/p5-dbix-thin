@@ -33,12 +33,12 @@ sub setup {
     my $class = ref $self;
 
     for my $alias (@{ $self->{_select_columns} }) {
-        (my $col = lc $alias) =~ s/.+\.(.+)/$1/o;
-        next if $class->can($col);
+        (my $column = lc $alias) =~ s/.+\.(.+)/$1/o;
+        next if $class->can($column);
         
         no strict 'refs';
         no warnings 'redefine';
-        *{"$class\::$col"} = $self->_lazy_getter($col);
+        *{"$class\::$column"} = $self->_lazy_accessor($column);
     }
 
     $self->{_get_value_cached} = {};
@@ -47,20 +47,25 @@ sub setup {
     return $self;
 }
 
-sub _lazy_getter {
+sub _lazy_accessor {
     my ($self, $column) = @_;
 
     return sub {
-        my $self = shift;
+        my ($self, $new_value) = @_;
 
-        unless ($self->{_get_value_cached}->{$column}) {
-            my $value = $self->get_value($column);
-            # TODO: class check
-            if ($self->can('call_inflate')) {
-                $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
+        if (defined ($new_value)) {
+            # setter
+            $self->set($column => $new_value);
+        } else {
+            # getter
+            unless ($self->{_get_value_cached}->{$column}) {
+                my $value = $self->get_value($column);
+                if ($self->can('call_inflate')) {
+                    $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
+                }
             }
+            $self->{_get_value_cached}->{$column};
         }
-        $self->{_get_value_cached}->{$column};
     };
 }
 
@@ -72,8 +77,7 @@ sub get_value {
         return $value;
     }
 
-    # TODO: class check
-    if (my $method = $self->can('utf8_on')) {
+    if ($self->can('utf8_on')) {
         $value = $self->utf8_on($column, $value);
     }
 
@@ -83,8 +87,8 @@ sub get_value {
 sub get_values {
     my $self = shift;
     my %values = ();
-    for my $col ( @{$self->{_select_columns}} ) {
-        $values{$col} = $self->get_value($col);
+    for my $column ( @{$self->{_select_columns}} ) {
+        $values{$column} = $self->get_value($column);
     }
     return %values;
 }
@@ -107,17 +111,17 @@ sub get_raw_values {
 sub set {
     my ($self, %args) = @_;
 
-    for my $col (keys %args) {
-        $self->{_values}->{$col} = $args{$col};
-        delete $self->{_get_value_cached}->{$col};
-        $self->{_dirty_columns}->{$col} = 1;
+    for my $column (keys %args) {
+        $self->{_values}->{$column} = $args{$column};
+        delete $self->{_get_value_cached}->{$column};
+        $self->{_dirty_columns}->{$column} = 1;
     }
 }
 
 sub get_dirty_columns {
     my $self = shift;
     my %rows = map { $_ => $self->get_value($_) } keys %{$self->{_dirty_columns}};
-    return \%rows;
+    return %rows;
 }
 
 sub create {
@@ -127,14 +131,20 @@ sub create {
 }
 
 sub update {
-    my ($self, $values) = @_;
+    my ($self, %values) = @_;
     my $table = $self->table;
-    $values ||= $self->get_dirty_columns;
+
+    my %dirty = $self->get_dirty_columns;
+    while (my ($k, $v) = each %dirty) {
+        next if (defined $values{$k});
+        $values{$k} = $dirty{$v};
+    }
+
     my $where = $self->update_or_delete_condition($table);
-    $self->set($values);
+    $self->set(%values);
     return $self->model->update(
         $table,
-        values => $values,
+        values => \%values,
         where => $where
     );
 }
@@ -199,6 +209,11 @@ DBIx::Thin::Row - DBIx::Thin's Row class
   # $user is an instance of sub-class of DBIx::Thin::Row
   print 'id: ', $user->id, "\n";
   print 'name: ', $user->name, "\n";
+
+
+=head1 ACCESSORS
+
+DBIx::Thin::Row generates accessors for selected columns.
 
 
 =head1 METHODS
