@@ -56,7 +56,7 @@ sub setup {
 }
 
 
-sub load_schema {
+sub load_defined_schemas {
     my ($class, %args) = @_;
     # schema_directory must be 'lib/Your/Model' for lib/Your/Model.pm
     my $schema_directory = $args{schema_directory};
@@ -679,7 +679,7 @@ DBIx::Thin - Lightweight ORMapper
      username => '',
      password => '',
  );
- DBIx::Thin->load_schema; # Load defined schemas
+ DBIx::Thin->load_defined_schemas; # Load defined schemas
  
  1;
 
@@ -765,10 +765,10 @@ DBIx::Thin - Lightweight ORMapper
 =head2 setup(%)
 
 
-=head2 load_schema()
+=head2 load_defined_schemas()
 
 Loads all defined schemas automatically.
-After calling load_schema, you don't need to use your schema class like 'use Your::Model::User'.
+After calling load_defined_schemas, you don't need to use your schema class like 'use Your::Model::User'.
 
 =head2 new(%args)
 
