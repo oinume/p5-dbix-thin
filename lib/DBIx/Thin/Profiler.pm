@@ -25,6 +25,7 @@ sub record_query {
 #BIND: (%s)
 EOS
     push @{ $self->{query_logs} }, $log;
+    return $log;
 }
 
 sub normalize_sql {

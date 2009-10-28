@@ -162,7 +162,7 @@ sub profile {
     my ($class, $sql, $bind) = @_;
     my $attr = $class->attributes;
     if ($attr->{profile_enabled} && $sql) {
-        $class->profiler->record_query($sql, $bind);
+        warn $class->profiler->record_query($sql, $bind) . "\n";
     }
 }
 

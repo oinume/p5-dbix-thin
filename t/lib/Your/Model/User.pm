@@ -1,6 +1,10 @@
 package Your::Model::User;
 
 use DBIx::Thin::Schema;
+use DBIx::Thin::Inflate;
+use Your::Model::Inflate;
+use Your::Model::Inflate;
+
 use base qw/DBIx::Thin::Row/;
 
 =pod
@@ -16,18 +20,6 @@ CREATE TABLE user (
 
 =cut
 
-sub inflate_datetime {
-    my ($column, $value) = @_;
-    $value =~ s!-!/!g; # YYYY-MM-DD hh:mm:ss -> YYYY/MM/DD hh:mm::ss
-    return $value;
-}
-
-sub deflate_datetime {
-    my ($column, $value) = @_;
-    $value =~ s!/!-!g; # YYYY/MM/DD hh:mm:ss -> YYYY-MM-DD hh:mm::ss
-    return $value;
-}
-
 # getter   --> inflate
 # write db --> deflate
 install_table 'user' => schema {
@@ -41,13 +33,13 @@ install_table 'user' => schema {
         email => { type => String, utf8 => 0, },
         created_at => {
             type => Datetime,
-            inflate => \&inflate_datetime,
-            deflate => \&deflate_datetime,
+            inflate => inflate_code 'dt',
+            deflate => deflate_code 'dt',
         },
         updated_at => {
             type => Datetime,
-            inflate => \&inflate_datetime,
-            deflate => \&deflate_datetime,
+            inflate => inflate_code 'dt',
+            deflate => deflate_code 'dt',
         },
     );
 };
