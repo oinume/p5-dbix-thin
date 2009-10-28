@@ -137,7 +137,11 @@ sub update {
     my %dirty = $self->get_dirty_columns;
     while (my ($k, $v) = each %dirty) {
         next if (defined $values{$k});
-        $values{$k} = $dirty{$v};
+        $values{$k} = $dirty{$k};
+    }
+
+    unless (keys %values) {
+        return 0;
     }
 
     my $where = $self->update_or_delete_condition($table);
