@@ -20,7 +20,7 @@ use Test::More qw/no_plan/;
             email => { type => String, utf8 => 0 },
             icon => { type => Binary },
             created_at => { type => Datetime },
-            point  => { type => Declimal },
+            point  => { type => Decimal },
             birthday => { type => Date },
             birth_time => { type => Time },
         );
