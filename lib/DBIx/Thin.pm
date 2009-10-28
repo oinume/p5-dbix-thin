@@ -288,11 +288,10 @@ search_by_sql(
     bind => ...,
     options => {
         inflate => {
-            user => [ qw(created_at) ],
+            created_at => inflate 'DateTime',
+            uri => inflate 'URI',
         },
-        utf8 => {
-            user => [ qw(name) ],
-        },
+        utf8 => [ qw(name description) ],
     }
 );
 
