@@ -2,11 +2,11 @@ package DBIx::Thin::Utils;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
 use Exporter;
-use base qw/Exporter/;
+use base qw(Exporter);
 
-our @EXPORT_OK = qw/check_required_args/;
+our @EXPORT_OK = qw(check_required_args);
 
 sub check_required_args {
     my ($keys, $values) = @_;

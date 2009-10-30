@@ -3,7 +3,7 @@
 use utf8;
 use FindBin::libs;
 use Test::Utils;
-use Test::More qw/no_plan/;
+use Test::More qw(no_plan);
 use Your::Model;
 
 my $model = Your::Model->new;

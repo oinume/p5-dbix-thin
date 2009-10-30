@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-use FindBin qw/$Bin/;
+use FindBin qw($Bin);
 use FindBin::libs;
 use Test::Utils;
 use Test::More tests => 2;

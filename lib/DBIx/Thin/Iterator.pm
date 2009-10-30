@@ -2,9 +2,9 @@ package DBIx::Thin::Iterator;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
 use UNIVERSAL::require;
-use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Utils qw(check_required_args);
 
 =head1 NAME
 

@@ -5,7 +5,7 @@ use DBIx::Thin::Inflate;
 use Your::Model::Inflate;
 use Your::Model::Inflate;
 
-use base qw/DBIx::Thin::Row/;
+use base qw(DBIx::Thin::Row);
 
 =pod
 

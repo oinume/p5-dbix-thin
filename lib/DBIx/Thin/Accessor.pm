@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Class::Accessor::Fast;
 
-use base qw/Class::Accessor::Fast/;
+use base qw(Class::Accessor::Fast);
 
 sub new {
     my ($proto, @fields) = @_;

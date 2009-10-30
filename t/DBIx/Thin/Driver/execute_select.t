@@ -2,7 +2,7 @@
 
 use FindBin::libs;
 use Test::Utils;
-use Test::More qw/no_plan/;
+use Test::More qw(no_plan);
 use Your::Model;
 
 my $driver = Your::Model->driver;

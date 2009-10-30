@@ -8,11 +8,11 @@ DBIx::Thin::Driver - A base class for database driver
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
 use DBI;
 use Storable ();
 use UNIVERSAL::require;
-use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Utils qw(check_required_args);
 
 my %AVAILABLE_DRIVERS = (
     mysql => 'MySQL',
@@ -20,7 +20,7 @@ my %AVAILABLE_DRIVERS = (
     pg => 'PostgreSQL',
 );
 
-my @CONNECTION_INFO_KEYS = qw/dsn username password connect_options/;
+my @CONNECTION_INFO_KEYS = qw(dsn username password connect_options);
 
 =head1 CLASS METHODS
 
@@ -299,7 +299,7 @@ sub bulk_insert {
 
 sub raise_error {
     my ($class, $args) = @_;
-    check_required_args([ qw/reason sql/ ], $args);
+    check_required_args([ qw(reason sql) ], $args);
 
     Data::Dumper->require or croak $@;
     $args->{sth} && $class->close_sth($args->{sth});

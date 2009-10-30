@@ -2,9 +2,9 @@
 
 use strict;
 use warnings;
-use Data::Dumper qw/Dumper/;
+use Data::Dumper qw(Dumper);
 use File::Find;
-use FindBin qw/$Bin/;
+use FindBin qw($Bin);
 use FindBin::libs;
 use Test::Harness qw(runtests execute_tests);
 
@@ -69,7 +69,7 @@ sub teardown {}
 # SQLite
 #--------------------------------#
 package DBIx::Thin::Test::SQLite;
-use base qw/DBIx::Thin::Test/;
+use base qw(DBIx::Thin::Test);
 
 sub setup {
     my ($self) = @_;
@@ -95,7 +95,7 @@ sub teardown {
 # MySQL
 #--------------------------------#
 package DBIx::Thin::Test::MySQL;
-use base qw/DBIx::Thin::Test/;
+use base qw(DBIx::Thin::Test);
 
 sub setup {
     my $self = shift;

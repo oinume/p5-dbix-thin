@@ -2,10 +2,10 @@ package DBIx::Thin::Schema;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
-use DBIx::Thin::Utils qw/check_required_args/;
+use Carp qw(croak);
+use DBIx::Thin::Utils qw(check_required_args);
 use Data::Dumper qw(Dumper);
-use Storable qw/dclone/;
+use Storable qw(dclone);
 
 my ($is_utf8_function, $utf8_on_function, $utf8_off_function);
 BEGIN {
@@ -29,7 +29,7 @@ sub import {
 
     {
         no strict 'refs';
-        my @not_define = qw/__ANON__ BEGIN VERSION croak import check_required_args/;
+        my @not_define = qw(__ANON__ BEGIN VERSION croak import check_required_args);
         my %symbols = %DBIx::Thin::Schema::;
         my @functions = ();
         for my $name (keys %symbols) {
@@ -188,7 +188,7 @@ sub trigger ($$) {
 
 sub call_trigger {
     my ($class, $thin, %args) = @_;
-    check_required_args([ qw/trigger_name/ ], \%args);
+    check_required_args([ qw(trigger_name) ], \%args);
     my $triggers = $class->schema_info->{triggers}->{$args{trigger_name}};
     for my $trigger (@{ $triggers || [] }) {
         $trigger->($thin, $args{trigger_args});
@@ -274,7 +274,7 @@ DBIx::Thin::Schema - Schema DSL for DBIx::Thin
   # set user table schema settings
   install_table user => schema {
       primary_key 'id';
-      columns qw/id name created_at/;
+      columns qw(id name created_at);
 
       trigger pre_insert => callback {
           # hook

@@ -2,15 +2,15 @@ package DBIx::Thin;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
-use File::Basename qw/basename dirname/;
+use Carp qw(croak);
+use File::Basename qw(basename dirname);
 use File::Spec;
 use Storable ();
 use UNIVERSAL::require;
 use DBIx::Thin::Driver;
 use DBIx::Thin::Schema;
 use DBIx::Thin::Statement;
-use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Utils qw(check_required_args);
 
 our $VERSION = '0.01';
 
@@ -41,7 +41,7 @@ sub setup {
         no strict 'refs';
         *{"$caller\::attributes"} = sub { ref $_[0] ? $_[0] : $attributes };
 
-        my @not_define = qw/__ANON__ BEGIN VERSION/;
+        my @not_define = qw(__ANON__ BEGIN VERSION);
         my %symbols = %DBIx::Thin::;
         my @functions = ();
         for my $name (keys %symbols) {
@@ -201,7 +201,7 @@ sub find {
 
 sub find_by_sql {
     my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
+    check_required_args([ qw(sql) ], \%args);
     check_select_sql($args{sql});
 
     my ($sql, $bind) = ($args{sql}, $args{bind} || []);
@@ -298,7 +298,7 @@ search_by_sql(
 =cut
 sub search_by_sql {
     my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
+    check_required_args([ qw(sql) ], \%args);
     check_select_sql($args{sql});
 
     my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
@@ -340,7 +340,7 @@ sub find_or_create {
 sub create {
     my ($class, $table, %args) = @_;
     check_table($table);
-    check_required_args([ qw/values/ ], \%args);
+    check_required_args([ qw(values) ], \%args);
     
     my $schema = $class->schema_class($table);
     my %values = %{ $args{values} };
@@ -400,7 +400,7 @@ sub create {
 
 sub create_by_sql {
     my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
+    check_required_args([ qw(sql) ], \%args);
 
     my $options = $args{options} || {};
     my $table = $options->{table};
@@ -426,7 +426,7 @@ sub create_by_sql {
 sub create_all {
     my ($class, $table, %args) = @_;
     check_table($table);
-    check_required_args([ qw/values/ ], \%args);
+    check_required_args([ qw(values) ], \%args);
     
     my $driver = $class->driver;
     if (my $bulk_insert = $driver->can('bulk_insert')) {
@@ -440,7 +440,7 @@ sub create_all {
 sub update {
     my ($class, $table, %args) = @_;
     check_table($table);
-    check_required_args([ qw/values where/ ], \%args);
+    check_required_args([ qw(values where) ], \%args);
     
     my $schema = $class->schema_class($table);
 #    $class->call_schema_trigger('pre_update', $schema, $table, $args);
@@ -482,7 +482,7 @@ sub update {
 
 sub update_by_sql {
     my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
+    check_required_args([ qw(sql) ], \%args);
     
     my ($sql, $bind, $options) = ($args{sql}, $args{bind}, $args{options});
     $options ||= {};
@@ -537,7 +537,7 @@ sub delete {
 
 sub delete_all {
     my ($class, $table, %args) = @_;
-    check_required_args([ qw/where/ ], \%args);
+    check_required_args([ qw(where) ], \%args);
     
     my $schema = $class->schema_class($table);
 # TODO:
@@ -564,7 +564,7 @@ sub delete_all {
 
 sub delete_by_sql {
     my ($class, %args) = @_;
-    check_required_args([ qw/sql/ ], \%args);
+    check_required_args([ qw(sql) ], \%args);
 
     my ($sql, $bind, $options) = ($args{sql}, $args{bind}, $args{options});
     $options ||= {};
@@ -689,7 +689,7 @@ DBIx::Thin - Lightweight ORMapper
  #-----------------------#
  package Your::Model::User;
  use DBIx::Thin::Schema;
- use base qw/DBIx::Thin::Row/;
+ use base qw(DBIx::Thin::Row);
  
  install_table 'user' => schema {
      primary_key 'id',
@@ -706,7 +706,7 @@ DBIx::Thin - Lightweight ORMapper
  #-----------------------#
  package Your::Model::Status;
  use DBIx::Thin::Schema;
- use base qw/DBIx::Thin::Row/;
+ use base qw(DBIx::Thin::Row);
  
  install_table 'status' => schema {
      primary_key 'id',
