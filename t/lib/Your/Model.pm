@@ -5,6 +5,7 @@ use warnings;
 use Carp ();
 use FindBin::libs;
 use DBIx::Thin;
+use Your::Model::Inflate;
 
 my $dsn = $ENV{DBIX_THIN_DSN} || 'DBI:mysql:dbix_thin:localhost';
 my $username = $ENV{DBIX_THIN_USERNAME} || 'root';
