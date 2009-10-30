@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 use DBIx::Thin::Utils qw(check_required_args);
+use DBIx::Thin::Inflate;
 use Data::Dumper qw(Dumper);
 use Storable qw(dclone);
 
@@ -170,6 +171,25 @@ sub utf8_off {
     }
     return $value;
 }
+
+sub inflate_code($) {
+    my ($name) = @_;
+    my $code = get_inflate_code($name);
+    unless (defined $code) {
+        croak "No inflate code for '$name'.";
+    }
+    return $code;
+}
+
+sub deflate_code($) {
+    my ($name) = @_;
+    my $code = get_deflate_code($name);
+    unless (defined $code) {
+        croak "No deflate code for '$name'.";
+    }
+    return $code;
+}
+
 
 sub trigger ($$) {
     my ($trigger_name, $code) = @_;
