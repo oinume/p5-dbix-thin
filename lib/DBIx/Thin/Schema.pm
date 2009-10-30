@@ -5,7 +5,6 @@ use warnings;
 use Carp qw(croak);
 use DBIx::Thin::Utils qw(check_required_args);
 use DBIx::Thin::Inflate;
-use Data::Dumper qw(Dumper);
 use Storable qw(dclone);
 
 my ($is_utf8_function, $utf8_on_function, $utf8_off_function);

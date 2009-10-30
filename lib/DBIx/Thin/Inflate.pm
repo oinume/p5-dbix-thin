@@ -22,7 +22,7 @@ sub import {
     for my $f (qw(inflate_definitions
                   get_inflate_code
                   get_deflate_code
-                  regsiter_inflate)) {
+                  register_inflate)) {
 
         *{"$caller\::$f"} = \&$f;
     }

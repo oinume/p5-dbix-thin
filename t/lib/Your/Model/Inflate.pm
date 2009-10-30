@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use DBIx::Thin::Inflate;
 
-inflate_type dt => {
+register_inflate dt => {
     inflate => sub {
         my ($column, $value) = @_;
         $value =~ s!-!/!g; # YYYY-MM-DD hh:mm:ss -> YYYY/MM/DD hh:mm::ss

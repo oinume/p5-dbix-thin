@@ -3,13 +3,10 @@ package DBIx::Thin;
 use strict;
 use warnings;
 use Carp qw(croak);
-use File::Basename qw(basename dirname);
-use File::Spec;
 use Storable ();
 use UNIVERSAL::require;
 use DBIx::Thin::Driver;
 use DBIx::Thin::Schema;
-use DBIx::Thin::Statement;
 use DBIx::Thin::Utils qw(check_required_args);
 
 our $VERSION = '0.01';
@@ -58,6 +55,9 @@ sub setup {
 
 sub load_defined_schemas {
     my ($class, %args) = @_;
+    File::Basename->require or croak $@;
+    File::Spec->require or croak $@;
+    
     # schema_directory must be 'lib/Your/Model' for lib/Your/Model.pm
     my $schema_directory = $args{schema_directory};
     unless (defined $schema_directory) {
@@ -70,8 +70,8 @@ sub load_defined_schemas {
             return;
         }
         
-        my $caller_base_dir = dirname($caller_file);
-        my $caller_dir = basename($caller_file, ".pm");
+        my $caller_base_dir = File::Basename::dirname($caller_file);
+        my $caller_dir = File::Basename::basename($caller_file, ".pm");
         $schema_directory = File::Spec->catdir($caller_base_dir, $caller_dir);
     }
 
@@ -91,7 +91,10 @@ sub load_defined_schemas {
     opendir my $dh, $schema_directory or croak "$schema_directory: $!";
     while (my $file = readdir $dh) {
         next if $file =~ /^\.{1,2}$/;
-        my $schema = File::Spec->catfile(@required_dir_parts, basename($file, ".pm"));
+        my $schema = File::Spec->catfile(
+            @required_dir_parts,
+            File::Basename::basename($file, ".pm")
+        );
         $schema =~ s!/!::!g;
         push @schemas, $schema;
     }
@@ -631,6 +634,7 @@ sub placeholder {
 sub statement {
     my ($class, %args) = @_;
     $args{thin} = $class;
+    DBIx::Thin::Statement->require or croak $@;
     return DBIx::Thin::Statement->new(%args);
 }
 
