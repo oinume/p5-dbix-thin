@@ -2,7 +2,7 @@ package DBIx::Thin::Inflate;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
 #$Carp::Internal{(__PACKAGE__)}++;
 
 our %INFLATE = (
@@ -44,7 +44,7 @@ sub deflate_code($) {
 
 sub inflate_type($$) {
     my ($name, $hashref) = @_;
-    for my $type (qw/inflate deflate/) {
+    for my $type (qw(inflate deflate)) {
         if (ref($hashref->{$type}) eq 'CODE') {
             if ($INFLATE{$type}->{$name}) {
                 my $caller = caller;

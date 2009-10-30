@@ -2,14 +2,14 @@
 
 use FindBin::libs;
 use Test::Utils;
-use Test::More qw/no_plan/;
+use Test::More qw(no_plan);
 
 {
     package Your::Model::SchemaTest;
     
     use Test::More;
     use DBIx::Thin::Schema;
-    use base qw/DBIx::Thin::Row/;
+    use base qw(DBIx::Thin::Row);
 
     install_table schema_test => schema {
         primary_key 'id';
@@ -27,7 +27,7 @@ use Test::More qw/no_plan/;
     };
     
     my $schema_info = Your::Model::SchemaTest->schema_info;
-    my @column_names = qw/id name email icon created_at point birthday birth_time/;
+    my @column_names = qw(id name email icon created_at point birthday birth_time);
     is_deeply($schema_info->{column_names}, \@column_names, 'columns');
     is_deeply($schema_info->{columns}->{name}, { type => 'string', utf8 => 1 }, 'columns');
     ok(Your::Model::SchemaTest->is_utf8_column('name'), 'is_utf8_column');

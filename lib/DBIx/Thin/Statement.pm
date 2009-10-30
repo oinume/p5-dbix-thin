@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use DBIx::Thin::Accessor;
 
-use base qw/DBIx::Thin::Accessor/;
+use base qw(DBIx::Thin::Accessor);
 
 __PACKAGE__->mk_accessors(qw/
     select distinct select_map select_map_reverse

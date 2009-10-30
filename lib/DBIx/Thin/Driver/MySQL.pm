@@ -3,9 +3,9 @@ package DBIx::Thin::Driver::MySQL;
 use strict;
 use warnings;
 
-use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Utils qw(check_required_args);
 
-use base qw/DBIx::Thin::Driver/;
+use base qw(DBIx::Thin::Driver);
 
 sub last_insert_id {
     my ($self, $sth, $opts) = @_;

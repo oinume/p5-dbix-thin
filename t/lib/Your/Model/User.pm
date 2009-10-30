@@ -3,7 +3,7 @@ package Your::Model::User;
 use DBIx::Thin::Schema;
 use DBIx::Thin::Inflate; # TODO: merge to DBIx::Thin::Schema?
 
-use base qw/DBIx::Thin::Row/;
+use base qw(DBIx::Thin::Row);
 
 =pod
 

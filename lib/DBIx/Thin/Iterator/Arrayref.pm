@@ -2,15 +2,15 @@ package DBIx::Thin::Iterator::Arrayref;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
 use DBIx::Thin::Iterator;
-use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Utils qw(check_required_args);
 
-use base qw/DBIx::Thin::Iterator/;
+use base qw(DBIx::Thin::Iterator);
 
 sub new {
     my ($class, %args) = @_;
-    check_required_args([ qw/data/ ], \%args);
+    check_required_args([ qw(data) ], \%args);
 
     unless (defined $args{thin}) {
         $args{thin} = 'DBIx::Thin';

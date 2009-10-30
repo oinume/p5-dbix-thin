@@ -2,15 +2,15 @@ package DBIx::Thin::Iterator::StatementHandle;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw(croak);
 use DBIx::Thin::Iterator;
-use DBIx::Thin::Utils qw/check_required_args/;
+use DBIx::Thin::Utils qw(check_required_args);
 
-use base qw/DBIx::Thin::Iterator/;
+use base qw(DBIx::Thin::Iterator);
 
 sub new {
     my ($class, %args) = @_;
-    check_required_args([ qw/sth object_class/ ], \%args);
+    check_required_args([ qw(sth object_class) ], \%args);
 # TODO: thin required when $model->find form
     return bless {
         sth => $args{sth},
