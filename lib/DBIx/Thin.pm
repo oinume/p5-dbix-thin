@@ -291,8 +291,8 @@ search_by_sql(
     bind => ...,
     options => {
         inflate => {
-            created_at => inflate 'DateTime',
-            uri => inflate 'URI',
+            created_at => inflate_code 'DateTime',
+            uri => inflate_code 'URI',
         },
         utf8 => [ qw(name description) ],
     }
@@ -314,11 +314,25 @@ sub search_by_sql {
     }
 
     DBIx::Thin::Iterator::StatementHandle->require or croak $@;
+    my %extra_args = ();
+    my $utf8 = $options->{utf8};
+    if (defined $utf8) {
+         (ref $utf8 ne 'ARRAY') && croak "options 'utf8' must be ARRAYREF";
+        $extra_args{utf8} = $utf8;
+    }
+    my $inflate = $options->{inflate};
+    if (defined $inflate) {
+        (ref $inflate ne 'HASH') && croak "options 'inflate' must be HASHREF";
+        $extra_args{inflate} = $inflate;
+    }
+
     my $iterator = DBIx::Thin::Iterator::StatementHandle->new(
-        model => $class,
         sth => $sth,
         # In DBIx::Thin, object_class is a schema class.
         object_class => $class->schema_class($table),
+        # Used for $row->update or $row->delete.
+        model => $class,
+        %extra_args,
     );
 
     return wantarray ? $iterator->as_array : $iterator;

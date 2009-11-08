@@ -167,6 +167,8 @@ sub create_object {
     my $object = $class->new(
         _values => $values,
         _model => $self->{model},
+        _utf8 => $self->{utf8},
+        _inflate => $self->{inflate},
     );
 
     unless ($self->{_object_setup_called}) {

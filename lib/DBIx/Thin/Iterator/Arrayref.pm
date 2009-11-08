@@ -12,20 +12,18 @@ sub new {
     my ($class, %args) = @_;
     check_required_args([ qw(data) ], \%args);
 
-    unless (defined $args{thin}) {
-        $args{thin} = 'DBIx::Thin';
+    unless (defined $args{model}) {
+        $args{model} = 'DBIx::Thin';
     }
     
     my @new_data = map { $_ } @{ $args{data} };
-    my $self = bless {
-        thin => $args{thin},
-        data => \@new_data,
-        current => 0,
-    }, $class;
-
-    if (defined $args{object_class}) {
-        $self->{object_class} = $args{object_class};
+    my %hash = (current => 0);
+    for my $key (qw(model object_class data utf8 inflate)) {
+        if (defined $args{$key}) {
+            $hash{$key} = $args{$key};
+        }
     }
+    my $self = bless \%hash, $class;
 
     return $self;
 }

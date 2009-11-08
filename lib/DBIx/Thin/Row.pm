@@ -17,6 +17,7 @@ sub new {
     my $self = bless { %args }, $class;
 # TODO: implement other tables
 #    check_required_args([ qw(other_tables) ], \%args);
+    $self->check_methods();
 
     if ($self->{_values}) {
         my @select_columns = keys %{ $self->{_values} };
@@ -24,13 +25,14 @@ sub new {
             $self->{_select_columns} = \@select_columns;
         }
     }
-    
+
     return $self;
 }
 
 sub setup {
     my $self = shift;
     my $class = ref $self;
+    $self->check_methods();
 
     for my $alias (@{ $self->{_select_columns} }) {
         (my $column = lc $alias) =~ s/.+\.(.+)/$1/o;
@@ -47,6 +49,16 @@ sub setup {
     return $self;
 }
 
+sub check_methods {
+    my ($self) = @_;
+    for my $method (qw(utf8_on force_utf8_on call_inflate)) {
+        unless ($self->can($method)) {
+            my $class = ref $self;
+            croak "Method '$method' is not defined on '$class'";
+        }
+    }
+}
+
 sub _lazy_accessor {
     my ($self, $column) = @_;
 
@@ -60,11 +72,15 @@ sub _lazy_accessor {
             # getter
             unless ($self->{_get_value_cached}->{$column}) {
                 my $value = $self->get_value($column);
-                if ($self->can('call_inflate')) {
-                    $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
+                # TODO: test
+                $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
+                my $code = $self->get_extra_inflate_code($column);
+                if (defined $code) {
+                    $self->{_get_value_cached}->{$column} = $code->($column, $value);
                 }
             }
-            $self->{_get_value_cached}->{$column};
+
+            return $self->{_get_value_cached}->{$column};
         }
     };
 }
@@ -77,8 +93,10 @@ sub get_value {
         return $value;
     }
 
-    if ($self->can('utf8_on')) {
-        $value = $self->utf8_on($column, $value);
+    $value = $self->utf8_on($column, $value);
+    if ($self->is_extra_utf8_column($column)) {
+        # TODO: write test
+        $value = $self->force_utf8_on($column, $value);
     }
 
     return $value;
@@ -107,7 +125,6 @@ sub get_raw_values {
     return %values;
 }
 
-
 sub set {
     my ($self, %args) = @_;
 
@@ -116,6 +133,18 @@ sub set {
         delete $self->{_get_value_cached}->{$column};
         $self->{_dirty_columns}->{$column} = 1;
     }
+}
+
+sub is_extra_utf8_column {
+    my ($self, $column) = @_;
+    my @utf8 = @{ $self->{_utf8} || [] };
+    return grep { $_ eq $column } @utf8 ? 1 : 0;
+}
+
+sub get_extra_inflate_code {
+    my ($self, $column) = @_;
+    my $inflate = $self->{_inflate} || {};
+    return $inflate->{$column};
 }
 
 sub get_dirty_columns {

@@ -33,6 +33,8 @@ sub import {
     return;
 }
 
+1;
+
 __END__
 
 =head1 NAME
@@ -54,5 +56,3 @@ OR
   PerlModule DBIx::Thin::Preload
 
 =cut
-
-1;

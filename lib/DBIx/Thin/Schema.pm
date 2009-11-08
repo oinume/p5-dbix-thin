@@ -163,9 +163,25 @@ sub utf8_on {
     return $value;
 }
 
+sub force_utf8_on {
+    my ($class, $column, $value) = @_;
+    unless ($is_utf8_function->($value)) {
+        $utf8_on_function->($value);
+    }
+    return $value;
+}
+
 sub utf8_off {
     my ($class, $column, $value) = @_;
     if ($class->is_utf8_column($column) && $is_utf8_function->($value)) {
+        $utf8_off_function->($value);
+    }
+    return $value;
+}
+
+sub force_utf8_off {
+    my ($class, $column, $value) = @_;
+    if ($is_utf8_function->($value)) {
         $utf8_off_function->($value);
     }
     return $value;

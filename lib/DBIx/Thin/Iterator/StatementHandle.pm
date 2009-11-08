@@ -10,13 +10,16 @@ use base qw(DBIx::Thin::Iterator);
 
 sub new {
     my ($class, %args) = @_;
-    check_required_args([ qw(sth object_class) ], \%args);
-# TODO: thin required when $model->find form
-    return bless {
-        sth => $args{sth},
-        object_class => $args{object_class},
-        model => $args{model},
-    }, $class;
+    check_required_args([ qw(sth object_class model) ], \%args);
+    
+    my %hash = ();
+    for my $key (qw(sth object_class model utf8 inflate)) {
+        if (defined $args{$key}) {
+            $hash{$key} = $args{$key};
+        }
+    }
+
+    return bless \%hash, $class;
 }
 
 sub next {

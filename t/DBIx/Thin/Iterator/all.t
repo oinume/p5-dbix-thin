@@ -4,6 +4,7 @@ use FindBin::libs;
 use Test::Utils;
 use Test::More qw(no_plan);
 use Data::Dumper;
+use Your::Model::Inflate;
 
 BEGIN { use_ok('DBIx::Thin::Iterator'); }
 
