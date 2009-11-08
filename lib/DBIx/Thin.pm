@@ -207,7 +207,7 @@ sub find_by_sql {
     check_required_args([ qw(sql) ], \%args);
     check_select_sql($args{sql});
 
-    my ($sql, $bind) = ($args{sql}, $args{bind} || []);
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
     $class->profile($sql, $bind);
     my $driver = $class->driver;
     my $sth = $driver->execute_select($sql, $bind);
@@ -223,7 +223,7 @@ sub find_by_sql {
         $table = $class->get_table($sql);
     }
 
-    return $class->create_row_object($class->schema_class($table), $row);
+    return $class->create_row_object($class->schema_class($table), $row, $options);
 }
 
 
@@ -272,10 +272,14 @@ sub search {
         }
     }
 
+    my %options_args = (table => $table);
+    for my $key (qw(utf8 inflate)) {
+        $options_args{$key} = $options->{$key};
+    }
     return $class->search_by_sql(
         sql => $statement->as_sql,
         bind => $statement->bind,
-        options => { table => $table },
+        options => \%options_args,
     );
 }
 
@@ -402,7 +406,7 @@ sub create {
     if ($primary_key) {
         $values{$primary_key} = $last_insert_id;
     }
-    my $object = $class->create_row_object($schema, \%values);
+    my $object = $class->create_row_object($schema, \%values, {});
 
 #    $schema->call_trigger(
 #        $class,
@@ -597,14 +601,19 @@ sub delete_by_sql {
 
 
 sub create_row_object {
-    my ($class, $object_class, $hashref) = @_;
+    my ($class, $object_class, $hashref, $options) = @_;
+    $options ||= {};
 
-    my %values = (
+    my %args = (
         _values => $hashref,
-        _thin => $class,
+        _model => $class,
     );
+    while (my ($k, $v) = each %{ $options }) {
+        $args{$k} = $v;
+    }
+
     $object_class->require or croak $@;
-    return $object_class->new(%values)->setup;
+    return $object_class->new(%args)->setup;
 }
 
 sub get_table {
@@ -902,6 +911,9 @@ ARGUMENTS
   args : HASH
     sql : SQL
     bind : bind parameters. (ARRAYREF)
+    options : options. (HASHREF)
+      utf8 : extra utf8 columns (ARRAYREF)
+      inflate : extra inflate columns (HASHREF)
 
 RETURNS : A row object for the table. if no records, returns undef.
 
@@ -970,6 +982,8 @@ ARGUMENTS
     bind : bind parameters. ARRAYREF
     options : HASHREF
       table : Table for selection (used for determining a mapped object)
+      utf8 : extra utf8 columns (ARRAYREF)
+      inflate : extra inflate columns (HASHREF)
 
 RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the SQL. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
 
