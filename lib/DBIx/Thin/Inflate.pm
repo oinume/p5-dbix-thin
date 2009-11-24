@@ -5,6 +5,13 @@ use warnings;
 use Carp qw(croak);
 #$Carp::Internal{(__PACKAGE__)}++;
 
+use base qw(Exporter);
+
+our @EXPORT_OK = qw(
+    inflate_definitions get_inflate_code get_deflate_code
+);
+our @EXPORT = qw(register_inflate);
+
 my %Definitions = (
     inflate => {
         Hex  => sub { unpack("H*", $_[0]) },
@@ -14,19 +21,22 @@ my %Definitions = (
     },
 );
 
-sub import {
-    my $class  = shift;
-    my $caller = caller;
-
-    no strict 'refs';
-    for my $f (qw(inflate_definitions
-                  get_inflate_code
-                  get_deflate_code
-                  register_inflate)) {
-
-        *{"$caller\::$f"} = \&$f;
-    }
-}
+# TODO: delete
+#sub import {
+#    my $class  = shift;
+#    my $caller = caller;
+#
+#    {
+#        no strict 'refs';
+#        for my $f (qw(inflate_definitions
+#                      get_inflate_code
+#                      get_deflate_code
+#                      register_inflate)) {
+#
+#            *{"$caller\::$f"} = \&$f;
+#        }
+#    }
+#}
 
 sub inflate_definitions() {
     return %Definitions;

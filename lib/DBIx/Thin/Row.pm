@@ -73,6 +73,7 @@ sub _lazy_accessor {
             unless ($self->{_get_value_cached}->{$column}) {
                 my $value = $self->get_value($column);
                 # TODO: test
+                # TODO: unify to _row_call_inflate
                 $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
                 my $code = $self->get_extra_inflate_code($column);
                 if (defined $code) {
@@ -93,6 +94,7 @@ sub get_value {
         return $value;
     }
 
+    # TODO: unify to _row_utf8_on
     $value = $self->utf8_on($column, $value);
     if ($self->is_extra_utf8_column($column)) {
         # TODO: write test

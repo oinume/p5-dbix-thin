@@ -6,3 +6,11 @@ CREATE TABLE user (
     updated_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00'
 );
 
+CREATE TABLE status (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INT NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+    PRIMARY KEY (id),
+    KEY user_id (user_id)
+);

@@ -1,6 +1,8 @@
 DROP DATABASE IF EXISTS dbix_thin_test;
 CREATE DATABASE dbix_thin_test;
 USE dbix_thin_test;
+
+DROP TABLE IF EXISTS user;
 CREATE TABLE user (
     id INT NOT NULL AUTO_INCREMENT,
     name TEXT NOT NULL DEFAULT '',
@@ -10,3 +12,12 @@ CREATE TABLE user (
     PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
+DROP TABLE IF EXISTS status;
+CREATE TABLE status (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+    PRIMARY KEY (id),
+    KEY user_id (user_id)
+);

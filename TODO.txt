@@ -1,3 +1,5 @@
+script/thin.pl generate
+
 POD ##########################
 o DBIx::Thin
 o DBIx::Thin::Accessor
@@ -24,7 +26,6 @@ delete_by_sql
 find_all_with_pagenator
 find_all_with_pagenator_by_sql
 setup
-compile(for mod_perl?)
 
 # DBIx::Thin::Row
 update
@@ -38,10 +39,6 @@ before_update
 after_update
 before_delete
 after_delete
-
-inflate ###################
-
-deflate ###################
 
 transcation ###############
 $model->start_transaction->do {

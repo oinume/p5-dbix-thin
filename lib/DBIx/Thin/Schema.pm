@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 use DBIx::Thin::Utils qw(check_required_args);
-use DBIx::Thin::Inflate;
+use DBIx::Thin::Inflate qw(get_inflate_code get_deflate_code);
 use Storable qw(dclone);
 
 my ($is_utf8_function, $utf8_on_function, $utf8_off_function);
