@@ -17,4 +17,6 @@ build_requires 'FindBin::libs';
 auto_include;
 #auto_set_repository;
 
+tests_recursive;
+
 WriteAll;
