@@ -9,3 +9,5 @@ Makefile.old
 old/
 *.swp
 test.*
+.DS_Store
+TAGS
