@@ -17,12 +17,8 @@ Test #########################
 setup
 driver
 
-# DBIx::Thin::Statement
-
-
 Method implementation #################
 update_or_create
-delete_by_sql
 find_all_with_pagenator
 find_all_with_pagenator_by_sql
 setup
@@ -30,7 +26,6 @@ setup
 # DBIx::Thin::Row
 update
 delete
-whole interface and data structures
 
 trigger ###################
 before_create
