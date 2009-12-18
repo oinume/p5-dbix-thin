@@ -719,13 +719,15 @@ DBIx::Thin - Lightweight ORMapper
  use base qw(DBIx::Thin::Row);
  
  install_table 'user' => schema {
-     primary_key 'id',
+     primary_key 'id';
      defaults string_is_utf8 => 1;
      columns 
          id    => { type => Integer },
          name  => { type => String },
          email => { type => String, utf8 => 0 };
  };
+ 
+ 1;
 
  #-----------------------#
  # Your/Model/Status.pm
