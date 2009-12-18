@@ -23,10 +23,10 @@ my @PRELOAD_MODULES = qw(
 
 sub import {
     for my $module (@PRELOAD_MODULES) {
-        $module->require or croak $@;
+        $module->use or croak $@;
         if ($module->can('requires')) {
             for my $m ($module->requires) {
-                $m->require or croak $@;
+                $m->use or croak $@;
             }
         }
     }
