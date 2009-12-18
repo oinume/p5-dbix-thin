@@ -14,6 +14,9 @@ our $VERSION = '0.01';
 sub import {
     strict->import;
     warnings->import;
+    my $caller = caller;
+    no strict 'refs';
+    *{"$caller\::inflate_code"} = \&DBIx::Thin::Schema::inflate_code;
 }
 
 sub setup {
@@ -1012,7 +1015,17 @@ EXAMPLE
   ORDER BY id DESC
   EOS
       bind => [ '%hoge%' ]
-      options => { table => 'user' },
+      options => {
+          table => 'user',
+          utf8 => [ qw(name) ],
+          inflate => {
+              updated_at => sub {
+                  my ($column, $value) = @_;
+                  # inflate to DateTime object
+                  return DateTime::Format::MySQL->parse_datetime($value);
+              }
+          },
+      },
   );
 
 
