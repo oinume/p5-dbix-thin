@@ -62,9 +62,12 @@ EOS
     options => {
         utf8 => [ qw(name email) ],
         inflate => {
-        updated_at => DBIx::Thin::Schema::inflate_code 'dt',
-# TODO: implement
-#            updated_at => sub { print "inflate updated_at!!\n" },
+#            updated_at => sub {
+#                my ($column, $value) = @_;
+#                $value =~ s!-!/!g;
+#                return $value;
+#            },
+            updated_at => Your::Model::inflate_code 'dt',
         }
     },
 );
