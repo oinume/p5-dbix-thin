@@ -7,9 +7,20 @@ use FindBin::libs;
 use DBIx::Thin;
 use Your::Model::Inflate;
 
-my $dsn = $ENV{DBIX_THIN_DSN} || 'DBI:mysql:dbix_thin_test:localhost';
+my $dsn = $ENV{DBIX_THIN_DSN};
+unless (defined $dsn) {
+    $dsn = 'DBI:SQLite:dbname=dbix_thin_test.sqlite3';
+
+    if (system("which sqlite3 > /dev/null") == 1) {
+        die 'sqlite3 must be installed';
+    }
+    unless (-e 'dbix_thin_test.sqlite3') {
+        system "sqlite3 dbix_thin_test.sqlite3 < t/create_tables_sqlite3.sql";
+    }
+}
+
 my $username = $ENV{DBIX_THIN_USERNAME} || 'root';
-my $password = $ENV{DBIX_THIN_PASSWORD} || '';
+my $password = $ENV{DBIX_THIN_PASSWORD} || 'hoge';
 
 DBIx::Thin->setup(
     dsn => $dsn,
