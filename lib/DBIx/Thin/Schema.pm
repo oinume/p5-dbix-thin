@@ -116,6 +116,7 @@ sub columns (@) {
         }
         
         if ($def->{type} eq 'string') {
+            no warnings 'uninitialized';
             if (defined $def->{utf8} && $def->{utf8} == 1) {
                 $schema_info->{utf8_columns}->{$name} = 1;
             }

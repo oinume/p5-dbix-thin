@@ -621,8 +621,8 @@ sub create_row_object {
 
 sub get_table {
     my ($class, $sql) = @_;
-    # TODO: parse SQL
-    if ($sql =~ /^.+from\s+([\w]+)\s/i) {
+    # TODO: parse SQL properly
+    if ($sql =~ /^.+from\s+([\w]+)\s*/i) {
         return $1;
     }
     croak "Failed to extract table name from SQL\n$sql";
@@ -630,7 +630,7 @@ sub get_table {
 
 sub get_table_insert {
     my ($class, $sql) = @_;
-    if ($sql =~ /insert\s+into\s+([\w]+)\s/i) {
+    if ($sql =~ /insert\s+into\s+([\w]+)\s*/i) {
         return $1;
     }
     # TODO: parse more exactly
