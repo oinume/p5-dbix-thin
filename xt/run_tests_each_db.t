@@ -75,7 +75,7 @@ sub setup {
     my ($self) = @_;
 
     if (system("which sqlite3 > /dev/null") == 0) {
-        unlink 'dbix_thin_test.sqlite3';
+        unlink 'dbix_thin_author_test.sqlite3';
         system "sqlite3 dbix_thin_author_test.sqlite3 < $self->{dir}/../t/create_tables_sqlite3.sql";
         $ENV{DBIX_THIN_DSN} = "dbi:SQLite:dbname=dbix_thin_author_test.sqlite3";
         $ENV{DBIX_THIN_USERNAME} = 'root';
@@ -88,7 +88,7 @@ sub setup {
 }
 
 sub teardown {
-    unlink '/tmp/dbix_thin_test.sqlite3';
+    unlink '/tmp/dbix_thin_author_test.sqlite3';
 }
 
 #--------------------------------#
