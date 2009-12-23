@@ -100,7 +100,7 @@ use base qw(DBIx::Thin::Test);
 sub setup {
     my $self = shift;
     my $username = $ENV{DBIX_THIN_USERNAME} || 'root';
-    my $password = $ENV{DBIX_THIN_PASSWORD} || '';
+    my $password = $ENV{DBIX_THIN_PASSWORD} || 'root';
     if (system("which mysql") == 0) {
         system "mysql -B -u$username -p'$password' < $self->{dir}/../t/create_tables_mysql.sql";
         $ENV{DBIX_THIN_DSN} = "dbi:mysql:database=dbix_thin_test";
