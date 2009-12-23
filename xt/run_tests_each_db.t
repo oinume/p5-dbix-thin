@@ -80,6 +80,7 @@ sub setup {
         $ENV{DBIX_THIN_DSN} = "dbi:SQLite:dbname=dbix_thin_author_test.sqlite3";
         $ENV{DBIX_THIN_USERNAME} = 'root';
         $ENV{DBIX_THIN_PASSWORD} = 'hoge';
+
         return 1;
     } else {
         return 0;

@@ -73,23 +73,25 @@ sub generate {
     my $username = $options{username} || $ENV{DBIX_THIN_USERNAME};
     my $password = $options{password} || $ENV{DBIX_THIN_PASSWORD} || '';
 
-    my $dbh = DBI->connect($dsn, $username, $password, { RaiseError => 1 });
-    # TODO: sqlite and other
-    my $sth = $dbh->prepare("DESC $table");
-    $sth->execute;
-
-    my $table_pk = '';
     my @fields = ();
-    while (my $row = $sth->fetchrow_hashref) {
-        my $field = $row->{Field};
-        push @fields, { name => $field, type => $row->{Type} };
-        if ($row->{Key} eq 'PRI') {
-            $table_pk = $row->{Field};
-        }
-    }
-    $sth->finish();
+    eval {
+        my $dbh = DBI->connect($dsn, $username, $password, { RaiseError => 1 });
+        # TODO: sqlite and other
+        my $sth = $dbh->prepare("DESC $table");
+        $sth->execute;
 
-    $primary_key ||= $table_pk;
+        my $table_pk = '';
+        while (my $row = $sth->fetchrow_hashref) {
+            my $field = $row->{Field};
+            push @fields, { name => $field, type => $row->{Type} };
+            if ($row->{Key} eq 'PRI') {
+                $table_pk = $row->{Field};
+            }
+        }
+        $sth->finish();
+        $primary_key ||= $table_pk;
+    };
+    $@ && die "[error] $@";
 
     my %TYPES = (
         qr/^.*int.*$/ => 'Integer',

@@ -20,4 +20,6 @@ auto_include;
 author_tests('xt');
 tests_recursive;
 
+install_script 'script/thin-generate.pl';
+
 WriteAll;
