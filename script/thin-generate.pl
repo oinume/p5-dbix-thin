@@ -89,6 +89,7 @@ sub generate {
             }
         }
         $sth->finish();
+        # TODO: handling complex primary keys
         $primary_key ||= $table_pk;
     };
     $@ && die "[error] $@";
@@ -96,7 +97,7 @@ sub generate {
     my %TYPES = (
         qr/^.*int.*$/ => 'Integer',
         qr/^(double|float|decimal)$/ => 'Decimal',
-        qr/^(.*char|.*text|enum|set)$/ => 'String',
+        qr/^(.*char.*|.*text.*|enum|set)$/ => 'String',
         qr/^(.*blob|binary)$/ => 'Binary',
         qr/^boolean$/ => 'Boolean',
         qr/^(datetime|timestamp)$/ => 'Datetime',
@@ -131,6 +132,7 @@ $columns
 1;
 EOS
 
+    # generate model .pm file
     my $cwd = curdir;
     my $lib_path = catdir($cwd, 'lib');
     unless (-d $lib_path) {
@@ -144,14 +146,13 @@ EOS
     mkdir_p(path => catdir($lib_path, $dir));
     my $path = catfile($lib_path, $file);
     if (-e $path) {
+        # Ask overwriting
         my $term = Term::ReadLine->new('Simple Perl calc');
         my $prompt = "`$path' already exists. Overwrite? [yN] [n] ";
         my $OUT = $term->OUT || \*STDOUT;
         while (defined($_ = $term->readline($prompt))) {
             if ($_ =~ /^y$/i) {
                 last;
-            } elsif ($_ =~ /^n$/i) {
-                exit 0;
             } else {
                 exit 0;
             }
@@ -192,7 +193,9 @@ sub mkdir_p {
             mkdir $base, $mask;
             $base = catdir($base, shift @dirs);
         }
-        mkdir $base, $mask if (! -d $base);
+        unless (-d $base) {
+            mkdir $base, $mask;
+        }
     }
 
     croak "Can't create directory '$path'." if (! -d $path);
@@ -212,11 +215,11 @@ __END__
     Generate a model class of DBIx::Thin
 
  Options:
-    --dsn|d          Connection datasource
-    --username|u     Username
-    --password|p     Password
-    --primary-key|pk Primary key field
-    --utf8|u         enable utf8 flag on DBIx::Thin
-    --help           Print this message and exit
+    --dsn|d           Connection datasource
+    --username|u      Username
+    --password|p      Password
+    --primary-key|pk  Primary key field
+    --utf8|u          enable utf8 flag on DBIx::Thin
+    --help            Print this message and exit
 
 =cut
