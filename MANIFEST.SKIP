@@ -16,4 +16,4 @@ cover_db
 ^\.
 TODO.txt
 your_project.sqlite3
-
+dbix_thin_test.sqlite3
