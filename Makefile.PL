@@ -15,7 +15,7 @@ build_requires 'FindBin::libs';
 build_requires 'Test::More' => '0.42';
 
 auto_include;
-#auto_set_repository;
+auto_set_repository;
 
 author_tests('xt');
 tests_recursive;
