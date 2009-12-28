@@ -27,6 +27,7 @@ DBIx::Thin->setup(
     username => $username,
     password => $password,
     connect_options => {
+        RaiseError => 1,
         HandleError => sub { Carp::confess(shift) },
     },
 );

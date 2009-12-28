@@ -12,17 +12,34 @@ use DBIx::Thin::Utils qw(check_required_args);
 our $VERSION = '0.01';
 
 sub import {
+    my ($class, %args) = @_;
     strict->import;
     warnings->import;
-    my $caller = caller;
-    no strict 'refs';
-    *{"$caller\::inflate_code"} = \&DBIx::Thin::Schema::inflate_code;
+    {
+        no strict 'refs';
+        my $caller = caller;
+        *{"$caller\::inflate_code"} = \&DBIx::Thin::Schema::inflate_code;
+    }
+
+    if (defined $args{setup}) {
+        if (ref $args{setup} ne 'HASH') {
+            croak "'setup' option must be hashref. (use DBIx::Thin setup => {...})";
+        }
+        $class->setup(%{ $args{setup} });
+    }
+
+    if ($args{load_defined_schemas}) {
+        $class->load_defined_schemas();
+    }
 }
 
 sub setup {
     my ($class, %args) = @_;
 
     my $caller = caller;
+    if ($caller eq 'DBIx::Thin') {
+        $caller = caller 1;
+    }
     my $driver = defined $args{driver} ?
         delete $args{driver} : DBIx::Thin::Driver->create(%args);
     my $attributes = +{
@@ -66,6 +83,9 @@ sub load_defined_schemas {
     unless (defined $schema_directory) {
         # if schema_directory is not given, we'll find it from caller module
         my $caller = caller;
+        if ($caller eq 'DBIx::Thin') {
+            $caller = caller 1;
+        }
         $caller =~ s!::!/!g;
         my $caller_pm = $caller . ".pm";
         my $caller_file = $INC{$caller_pm};
@@ -373,7 +393,7 @@ sub create {
     check_table($table);
     check_required_args([ qw(values) ], \%args);
     
-    my $schema = $class->schema_class($table);
+    my $schema = $class->schema_class($table, 1);
     my %values = %{ $args{values} };
 
     # call trigger
