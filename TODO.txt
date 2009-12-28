@@ -39,3 +39,6 @@ transcation ###############
 $model->start_transaction->do {
     ...
 }
+
+others ####################
+DBIx::Thin::Row::_select_columns should be normalized

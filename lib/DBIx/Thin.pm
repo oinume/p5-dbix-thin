@@ -238,6 +238,7 @@ sub search {
     my $options = defined $args{options} ? $args{options} : {};
     
     my $schema = $class->schema_class($table);
+    # TODO: Can't locate object method "schema_info" via package "DBIx::Thin::Row
     my $columns = $options->{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
     my $statement = $class->statement;
     $statement->select($columns);
