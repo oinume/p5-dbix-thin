@@ -5,7 +5,7 @@ use warnings;
 use Carp ();
 use FindBin::libs;
 use DBIx::Thin;
-use Your::Model::Inflate;
+use Your::Model::Schema::Inflate;
 
 my $dsn = $ENV{DBIX_THIN_DSN};
 unless (defined $dsn) {

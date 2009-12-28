@@ -24,9 +24,6 @@ update_or_create
 find_all_with_pagenator
 find_all_with_pagenator_by_sql
 
-# DBIx::Thin::Inflate
-rename to DBIx::Thin::Schema::Inflate
-
 trigger ###################
 before_create
 after_create

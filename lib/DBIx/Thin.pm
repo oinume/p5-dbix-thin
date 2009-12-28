@@ -104,8 +104,7 @@ sub load_defined_schemas {
     for my $dir_part (@dir_parts) {
         if ($dir_part eq 'lib' || $dir_part eq 'pm') {
             $after_lib_dir = 1;
-        }
-        elsif ($after_lib_dir) {
+        } elsif ($after_lib_dir) {
             push @required_dir_parts, $dir_part;
         }
     }
@@ -114,6 +113,8 @@ sub load_defined_schemas {
     opendir my $dh, $schema_directory or croak "$schema_directory: $!";
     while (my $file = readdir $dh) {
         next if $file =~ /^\.{1,2}$/;
+        next if $file !~ /\.pm$/;
+
         my $schema = File::Spec->catfile(
             @required_dir_parts,
             File::Basename::basename($file, ".pm")

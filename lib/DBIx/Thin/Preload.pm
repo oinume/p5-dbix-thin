@@ -10,13 +10,13 @@ my @PRELOAD_MODULES = qw(
    DBIx::Thin
    DBIx::Thin::Accessor
    DBIx::Thin::Driver
-   DBIx::Thin::Inflate
    DBIx::Thin::Iterator
    DBIx::Thin::Iterator::Arrayref
    DBIx::Thin::Iterator::StatementHandle
    DBIx::Thin::Profiler
    DBIx::Thin::Row
    DBIx::Thin::Schema
+   DBIx::Thin::Schema::Inflate
    DBIx::Thin::Statement
    DBIx::Thin::Utils
 );

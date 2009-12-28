@@ -4,7 +4,7 @@ use FindBin::libs;
 use Test::Utils;
 use Test::More qw(no_plan);
 use Data::Dumper;
-use Your::Model::Inflate;
+use Your::Model::Schema::Inflate;
 
 #print Dumper(\@INC);
 
