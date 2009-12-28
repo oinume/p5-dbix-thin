@@ -11,3 +11,5 @@ old/
 test.*
 .DS_Store
 TAGS
+your_project.sqlite3
+dbix_thin_test.sqlite3
