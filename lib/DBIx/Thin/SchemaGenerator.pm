@@ -22,7 +22,7 @@ sub run {
     my ($self, @args) = @_;
     # parse command line
     my ($command, @global_args, @command_args);
-    for my $arg (@ARGV) {
+    for my $arg (@args) {
         if ($arg =~ /^-/) {
             push @global_args, $arg;
         } else {
@@ -41,12 +41,15 @@ sub run {
         'help|h',
     ) or $self->show_usage(1, '[error]');
 
+    if ($options{help}) {
+        $self->show_usage(0);
+    }
+
     if (@command_args <= 1) {
         $self->show_usage(1, qq{[error] 'TABLE_NAME' and 'MODULE_NAME' required});
     }
     
     my ($table, $module) = ($command_args[0], $command_args[1]);
-#    my $primary_key = $options{primary_key};
     my $dsn = $options{dsn} || $ENV{DBIX_THIN_DSN};
     my $username = $options{username} || $ENV{DBIX_THIN_USERNAME};
     my $password = $options{password} || $ENV{DBIX_THIN_PASSWORD} || '';
@@ -194,25 +197,3 @@ sub mkdir_p {
 
 1;
 
-__END__
-
-=head1 NAME
-
- thin-generate-schema.pl - Generate model class of DBIx::Thin
-
-=head1 SYNOPSIS
-
- thin-generate-schema.pl [options] TABLE_NAME MODULE_NAME
-
- Description:
-    Generate a model class of DBIx::Thin
-
- Options:
-    --dsn|d           Connection datasource
-    --username|u      Username
-    --password|p      Password
-    --primary-key|pk  Primary key field
-    --utf8|u          enable utf8 flag on DBIx::Thin
-    --help            Print this message and exit
-
-=cut
