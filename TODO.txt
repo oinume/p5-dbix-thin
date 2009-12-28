@@ -1,5 +1,3 @@
-script/thin.pl generate
-
 POD ##########################
 o DBIx::Thin
 o DBIx::Thin::Accessor
@@ -23,10 +21,6 @@ find_all_with_pagenator
 find_all_with_pagenator_by_sql
 setup
 
-# DBIx::Thin::Row
-update
-delete
-
 trigger ###################
 before_create
 after_create
@@ -36,9 +30,12 @@ before_delete
 after_delete
 
 transcation ###############
-$model->start_transaction->do {
+$model->begin_transaction->do {
     ...
 }
 
-others ####################
-DBIx::Thin::Row::_select_columns should be normalized
+Improvement ####################
+# DBIx::Thin
+
+# DBIx::Thin::Row
+_select_columns should be normalized
