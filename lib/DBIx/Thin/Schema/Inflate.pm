@@ -1,4 +1,4 @@
-package DBIx::Thin::Inflate;
+package DBIx::Thin::Schema::Inflate;
 
 use strict;
 use warnings;

@@ -1,8 +1,8 @@
-package Your::Model::Inflate;
+package Your::Model::Schema::Inflate;
 
 use strict;
 use warnings;
-use DBIx::Thin::Inflate;
+use DBIx::Thin::Schema::Inflate;
 
 register_inflate dt => {
     inflate => sub {
