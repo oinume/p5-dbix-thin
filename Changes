@@ -1,4 +1,7 @@
 Revision history for Perl extension DBIx::Thin
 
+0.02 Tue Dec 29 04:19:18 JST 2009
+    - thin-generate-schema.pl: Fixed a help option bug
+
 0.01 Tue Dec 29 02:16:29 JST 2009
     - original version
