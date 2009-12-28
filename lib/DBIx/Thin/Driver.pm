@@ -150,7 +150,7 @@ sub clone {
     my $connect_options = delete $self->{connect_options};
     my $clone = Storable::dclone($self);
     $clone->{dbh} = $dbh;
-    $clone->{connect_options} = { %{ $connect_options } };
+    $clone->{connect_options} = { %{ $connect_options || {} } };
 
     return $clone;
 }
