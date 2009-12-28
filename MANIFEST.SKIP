@@ -15,4 +15,5 @@ TAGS
 cover_db
 ^\.
 TODO.txt
+your_project.sqlite3
 
