@@ -10,16 +10,22 @@ DBIx::Thin::Row
 DBIx::Thin::Schema
 o DBIx::Thin::Statement
 
+SAMPLE #######################
+
+
 Test #########################
 # DBIx::Thin
 setup
 driver
 
 Method implementation #################
+# DBIx::Thin
 update_or_create
 find_all_with_pagenator
 find_all_with_pagenator_by_sql
-setup
+
+# DBIx::Thin::Inflate
+rename to DBIx::Thin::Schema::Inflate
 
 trigger ###################
 before_create
@@ -35,6 +41,8 @@ $model->begin_transaction->do {
 }
 
 Improvement ####################
+- critic
+
 # DBIx::Thin
 
 # DBIx::Thin::Row
