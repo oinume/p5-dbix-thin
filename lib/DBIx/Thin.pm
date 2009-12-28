@@ -137,11 +137,18 @@ sub new {
 }
 
 sub schema_class {
-    my ($class, $table) = @_;
+    my ($class, $table, $die_when_not_found) = @_;
+    unless (defined $die_when_not_found) {
+        $die_when_not_found = 0;
+    }
+
     my $schema = $class->attributes->{schemas}->{$table};
-    unless ($schema) {
+    unless (ref $schema) {
         $schema = DBIx::Thin::Schema::table2schema_class($table);
         unless ($schema) {
+            if ($die_when_not_found) {
+                croak "Can't find a schema class for '$table'";
+            }
             $schema = 'DBIx::Thin::Row';
         }
         $class->attributes->{schemas}->{$table} = $schema;
@@ -237,8 +244,7 @@ sub search {
     my $having = defined $args{having} ? $args{having} : {};
     my $options = defined $args{options} ? $args{options} : {};
     
-    my $schema = $class->schema_class($table);
-    # TODO: Can't locate object method "schema_info" via package "DBIx::Thin::Row
+    my $schema = $class->schema_class($table, 1);
     my $columns = $options->{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
     my $statement = $class->statement;
     $statement->select($columns);
@@ -537,7 +543,7 @@ sub update_or_create {
 
 sub delete {
     my ($class, $table, $primary_key_value) = @_;
-    my $schema = $class->schema_class($table);
+    my $schema = $class->schema_class($table, 1);
 # TODO:
 #    $class->call_schema_trigger('pre_delete', $schema, $table, $primary_key_value);
 
@@ -564,7 +570,7 @@ sub delete_all {
     my ($class, $table, %args) = @_;
     check_required_args([ qw(where) ], \%args);
     
-    my $schema = $class->schema_class($table);
+    my $schema = $class->schema_class($table, 1);
 # TODO:
 #    $class->call_schema_trigger('pre_delete_all', $schema, $table, $where);
 
