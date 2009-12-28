@@ -215,20 +215,18 @@ sub find_by_pk {
     return $class->search(
         $table,
         where => { $primary_key => $pk },
-        options => { limit => 1 },
+        limit => 1,
     )->first;
 }
 
 
 sub find {
     my ($class, $table, %args) = @_;
-    my %options = (%{ $args{options} || {} });
-    $options{limit} = 1;
-
     return $class->search(
         $table,
         where => $args{where},
-        options => \%options,
+        limit => 1,
+        options => $args{options} || {},
     )->first;
 }
 
@@ -259,20 +257,26 @@ sub find_by_sql {
 
 sub search {
     my ($class, $table, %args) = @_;
+    my $schema = $class->schema_class($table, 1);
+    my $select = defined $args{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
     my $where = defined $args{where} ? $args{where} : {};
     my $order_by = defined $args{order_by} ? $args{order_by} : {};
     my $having = defined $args{having} ? $args{having} : {};
+    my $limit = defined $args{limit} ? $args{having} : undef;
+    my $offset = defined $args{offset} ? $args{having} : undef;
     my $options = defined $args{options} ? $args{options} : {};
-    
-    my $schema = $class->schema_class($table, 1);
-    my $columns = $options->{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
+
     my $statement = $class->statement;
-    $statement->select($columns);
+    $statement->select($select);
     $statement->from([ $table ]);
 
     %{$where} && $class->add_wheres($statement, $where);
-    $options->{limit} && $statement->limit($options->{limit});
-    $options->{offset} && $statement->limit($options->{offset});
+    if (defined $limit) {
+        $statement->limit($limit);
+    }
+    if (defined $offset) {
+        $statement->offset($offset);
+    }
 
     if (defined $args{order_by}) {
         unless (ref($order_by) eq 'ARRAY') {
@@ -313,26 +317,7 @@ sub search {
     );
 }
 
-=pod
 
-TODO: inflate_columns, utf8_columns
-
-SELECT a.id, b.name FROM a
-LEFT JOIN b ON a.id = b.id
-
-search_by_sql(
-    sql => ...
-    bind => ...,
-    options => {
-        inflate => {
-            created_at => inflate_code 'DateTime',
-            uri => inflate_code 'URI',
-        },
-        utf8 => [ qw(name description) ],
-    }
-);
-
-=cut
 sub search_by_sql {
     my ($class, %args) = @_;
     check_required_args([ qw(sql) ], \%args);
@@ -730,13 +715,12 @@ DBIx::Thin - Lightweight ORMapper
  package Your::Model;
  
  use DBIx::Thin;
- 
  DBIx::Thin->setup(
      dsn => 'DBI:SQLite:your_project.sqlite3',
      username => '',
      password => '',
  );
- DBIx::Thin->load_defined_schemas; # Load defined schemas
+ DBIx::Thin->load_defined_schemas;
  
  1;
 
@@ -750,11 +734,11 @@ DBIx::Thin - Lightweight ORMapper
  
  install_table 'user' => schema {
      primary_key 'id';
-     defaults string_is_utf8 => 1;
+     defaults string_is_utf8 => 1; # utf8 flag on
      columns 
          id    => { type => Integer },
          name  => { type => String },
-         email => { type => String, utf8 => 0 };
+         email => { type => String, utf8 => 0 }; # utf8 flag off
  };
  
  1;
@@ -796,7 +780,7 @@ DBIx::Thin - Lightweight ORMapper
  my $iterator = Your::Model->search(
      'user',
      where => { name => 'oinume' },
-     options => { limit => 20 }
+     limit => 20,
  );
  while (my $row = $iterator->next) {
      ...
@@ -969,12 +953,12 @@ ARGUMENTS
 
   table : Table name for searching
   args : HASH
+    select : select columns. (ARRAYREF)
     where : HASHREF
     order_by : ARRAYREF or HASHREF
     having : HAVING
-    options : HASHREF
-      limit : max records number
-      offset : offset
+    limit : max records number
+    offset : offset
 
 RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
 
