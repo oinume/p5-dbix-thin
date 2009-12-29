@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Thin
 
+0.04 Tue Dec 29 20:37:30 JST 2009
+    - thin-generate-schema.pl: now accept --config option.
+      You can hide a password from a command line.
+    - Updated POD
+
 0.03 Tue Dec 29 11:27:34 JST 2009
     - Fixed test code for DBIx::Thin#search
     - Updated documents
