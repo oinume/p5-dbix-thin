@@ -282,17 +282,17 @@ sub _add_index_hint {
     return $tbl_name;
 }
 
-1;
+1; # base code from Data::ObjectDriver::SQL
 
 __END__
 
 =head1 NAME
 
-Data::ObjectDriver::SQL - an SQL statement
+DBIx::Thin::Statement - an SQL statement
 
 =head1 SYNOPSIS
 
-    my $sql = Data::ObjectDriver::SQL->new();
+    my $sql = DBIx::Thin::Statement->new();
     $sql->select([ 'id', 'name', 'bucket_id', 'note_id' ]);
     $sql->from([ 'foo' ]);
     $sql->add_where('name',      'fred');
@@ -309,14 +309,14 @@ Data::ObjectDriver::SQL - an SQL statement
 
 =head1 DESCRIPTION
 
-I<Data::ObjectDriver::SQL> represents an SQL statement. SQL statements are used
+I<DBIx::Thin::Statement> represents an SQL statement. SQL statements are used
 internally to C<Data::ObjectDriver::Driver::DBI> object drivers to convert
 database operations (C<search()>, C<update()>, etc) into database operations,
 but sometimes you just gotta use SQL.
 
 =head1 ATTRIBUTES
 
-I<Data::ObjectDriver::SQL> sports several data attributes that represent the
+I<DBIx::Thin::Statement> sports several data attributes that represent the
 parts of the modeled SQL statement.  These attributes all have accessor and
 mutator methods. Note that some attributes have more convenient methods of
 modification (for example, C<add_where()> for the C<where> attribute).
@@ -460,7 +460,7 @@ Returns or sets a simple comment to the SQL statement
 
 =head1 USAGE
 
-=head2 C<Data::ObjectDriver::SQL-E<gt>new()>
+=head2 C<DBIx::Thin::Statement-E<gt>new()>
 
 Creates a new, empty SQL statement.
 
@@ -633,20 +633,21 @@ correctly.
 
 =head1 BUGS AND LIMITATIONS
 
-I<Data::ObjectDriver::SQL> does not provide the functionality for turning SQL
+I<DBIx::Thin::Statement> does not provide the functionality for turning SQL
 statements into instances of object classes.
 
 =head1 SEE ALSO
 
 =head1 LICENSE
 
-I<Data::ObjectDriver> is free software; you may redistribute it and/or modify
+I<DBIx::Thin> is free software; you may redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =head1 AUTHOR & COPYRIGHT
 
 Except where otherwise noted, I<Data::ObjectDriver> is Copyright 2005-2006
 Six Apart, cpan@sixapart.com. All rights reserved.
+(This module copied from Data::ObjectDriver::SQL. thanks)
 
 =cut
 
