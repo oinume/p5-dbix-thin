@@ -6,8 +6,6 @@ all_from 'lib/DBIx/Thin.pm';
 
 requires 'Class::Accessor' => '0.25';
 requires 'DBI' => '1.38';
-requires 'File::Basename';
-requires 'File::Spec';
 requires 'UNIVERSAL::require';
 
 build_requires 'DBD::SQLite' => '1.14';
