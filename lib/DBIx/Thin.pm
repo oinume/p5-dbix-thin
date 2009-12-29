@@ -804,6 +804,19 @@ DBIx::Thin - Lightweight ORMapper
  Your::Model->delete('user', 10);
 
 
+=head1 SUPPORTED DATABASE
+
+=over 4
+
+=item * SQLite
+
+=item * MySQL
+
+=item * PostgreSQL
+
+=back
+
+
 =head1 METHODS
 
 =head2 setup(%)

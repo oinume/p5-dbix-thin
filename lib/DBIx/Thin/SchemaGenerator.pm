@@ -33,10 +33,11 @@ sub run {
     GetOptionsFromArray(
         \@global_args,
         \my %options,
+        'config|c=s',
         'dsn|d=s',
         'username|u=s',
         'password|p=s',
-        'primary-key|pk=s',
+        'primary-key|k=s',
         'utf8|u',
         'help|h',
     ) or $self->show_usage(1, '[error]');
@@ -50,12 +51,22 @@ sub run {
     }
     
     my ($table, $module) = ($command_args[0], $command_args[1]);
-    my $dsn = $options{dsn} || $ENV{DBIX_THIN_DSN};
-    my $username = $options{username} || $ENV{DBIX_THIN_USERNAME};
-    my $password = $options{password} || $ENV{DBIX_THIN_PASSWORD} || '';
-    
+    my $config = $options{config};
+    unless (-e $config) {
+        print STDERR "Configuration file '$config' not found.\n";
+        exit 1;
+    }
+    my $c = require $config;
+    unless (ref($c) && ref($c) eq 'HASH') {
+        print STDERR "Configuration file must return HASHREF.\n";
+        exit 1;
+    }
+
+    my $dsn = $options{dsn} || $c->{dsn};
+    my $username = $options{username} || $c->{username} || '';
+    my $password = $options{password} || $c->{password} || '';
     unless (defined $dsn) {
-        $self->show_usage(1, "Must specify option 'dsn' or set env 'DBIX_THIN_DSN'");
+        $self->show_usage(1, "Must specify 'dsn' on your configration file or command line.");
     }
     my (undef, $driver, undef, undef, undef) =
         DBI->parse_dsn($dsn) or die "Can't parse DBI DSN '$dsn'";
@@ -64,16 +75,16 @@ sub run {
         exit 1;
     }
 
-    my $parser_class = 'DBIx::Thin::SchemaGenerator::DDLParser::MySQL';
+    my $parser_class = '';
     $driver = lc $driver;
     if ($driver eq 'mysql') {
         $parser_class = 'DBIx::Thin::SchemaGenerator::DDLParser::MySQL';
 #    } elsif ($driver eq 'sqlite') {
         # TODO
     } else {
-        print STDERR "This script doesn't support driver '$driver'\n";
-        exit 1;
+        die "This script doesn't support driver '$driver'";
     }
+
     my $schema_info = $parser_class
         ->new(%options)
         ->parse($table, $dsn, $username, $password);
