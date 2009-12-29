@@ -21,8 +21,8 @@ driver
 Method implementation #################
 # DBIx::Thin
 update_or_create
-find_all_with_pagenator
-find_all_with_pagenator_by_sql
+search_with_pagenator
+search_with_pagenator_by_sql
 
 trigger ###################
 before_create
