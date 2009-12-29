@@ -29,7 +29,7 @@ my $order_by_iterator = $model->search(
     order_by => [
         { id => 'DESC' },
     ],
-    options => { limit => 3 },
+    limit => 3,
 );
 my @ids = ();
 while (my $user = $order_by_iterator->next) {
@@ -42,7 +42,7 @@ ok($ids[1] > $ids[2], 'search (order_by)');
 my @array = $model->search(
     'user',
     order_by => [ 'id' ],
-    options => { limit => 3 },
+    limit => 3,
 );
 # check id ASC
 ok($array[0]->id < $array[1]->id, 'search (list context)');

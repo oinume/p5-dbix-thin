@@ -864,9 +864,6 @@ ARGUMENTS
 RETURNS : sth object
 
 
-#--- ORM methods ---#
-
-
 =head2 find_by_pk($table, $pk)
 
 Returns a object of the table.
@@ -973,7 +970,7 @@ EXAMPLE
       order_by => [
           { id => 'DESC' }
       ],
-      options => { limit => 20 },
+      limit => 20,
   );
   while (my $user = $iterator->next) {
       print "id = ", $user->id, "\n";
