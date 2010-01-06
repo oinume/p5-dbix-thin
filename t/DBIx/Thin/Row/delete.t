@@ -7,8 +7,9 @@ use Data::Dumper;
 use Your::Model;
 
 my $model = Your::Model->new;
+my $name = 'row-delete-' . $$;
 my %values = (
-    name => 'row-delete',
+    name => $name,
     email => 'row@hoge.com',
     created_at => '2009-09-01 12:00:00',
 );
@@ -20,14 +21,13 @@ Your::Model->create(
 
 my $user = Your::Model->find(
     'user',
-    where => { name => 'row-delete' },
+    where => { name => $name },
 );
 $user->delete;
 
 my $user2 = Your::Model->find(
     'user',
-    where => { name => 'row-delete' },
+    where => { name => $name },
 );
 
 ok(!$user2, 'delete');
-
