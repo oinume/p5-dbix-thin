@@ -68,7 +68,7 @@ sub as_sql {
         $sql .= join(', ',  map {
             my $alias = $stmt->select_map->{$_};
             if (defined $alias) {
-                ($_ =~ /(?:^|\.)\Q$alias\E$/) ? $_ : "$_ $alias";
+                ($_ =~ /(?:^|\.)\Q$alias\E$/) ? $_ : "$_ AS $alias";
             }
             else {
                 $_;

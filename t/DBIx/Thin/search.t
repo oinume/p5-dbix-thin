@@ -24,6 +24,18 @@ my $iterator = $model->search(
 );
 ok($iterator->size >= 3, 'search');
 
+my @select_expected = $model->search(
+    'user',
+    select => [ 'id' ],
+    limit => 1,
+);
+my @select_actual = $model->search(
+    'user',
+    select => [ { id => 'alias_id' } ],
+    limit => 1,
+);
+is($select_expected[0]->id, $select_actual[0]->alias_id, 'search (select alias)');
+
 my $order_by_iterator = $model->search(
     'user',
     order_by => [
@@ -46,3 +58,4 @@ my @array = $model->search(
 );
 # check id ASC
 ok($array[0]->id < $array[1]->id, 'search (list context)');
+

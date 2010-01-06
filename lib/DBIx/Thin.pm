@@ -259,7 +259,7 @@ sub find_by_sql {
 sub search {
     my ($class, $table, %args) = @_;
     my $schema = $class->schema_class($table, 1);
-    my $select = defined $args{select} || [ sort keys %{ $schema->schema_info->{columns} } ];
+    my @select = defined $args{select} ? @{ $args{select} } : sort keys %{ $schema->schema_info->{columns} };
     my $where = defined $args{where} ? $args{where} : {};
     my $order_by = defined $args{order_by} ? $args{order_by} : {};
     my $having = defined $args{having} ? $args{having} : {};
@@ -268,7 +268,24 @@ sub search {
     my $options = defined $args{options} ? $args{options} : {};
 
     my $statement = $class->statement;
-    $statement->select($select);
+    unless (@select) {
+        croak "No 'select' columns";
+    }
+    for my $s (@select) {
+        if (ref $s eq 'HASH') {
+            # for aliases like:
+            # select => [ { id => 'my_id' }, { name => 'my_name' }, ... ]
+            my @keys = keys %{ $s };
+            unless (@keys) {
+                croak "Invalid 'select' attribute form (No hashref keys)";
+            }
+            $statement->add_select($keys[0], $s->{$keys[0]});
+        } else {
+            # for normal style like: select => [ 'id', 'name', ... ]
+            $statement->add_select($s, $s);
+        }
+    }
+
     $statement->from([ $table ]);
 
     %{$where} && $class->add_wheres($statement, $where);
@@ -311,6 +328,7 @@ sub search {
     for my $key (qw(utf8 inflate)) {
         $options_args{$key} = $options->{$key};
     }
+
     return $class->search_by_sql(
         sql => $statement->as_sql,
         bind => $statement->bind,
@@ -1026,6 +1044,7 @@ EXAMPLE
 
   my $iterator = Your::Model->search(
       'user',
+      select => [ 'id' ], # or select => [ { id => 'id_alias' } ]
       where => {
           name => { op => 'LIKE', value => 'fuga%' }
       },

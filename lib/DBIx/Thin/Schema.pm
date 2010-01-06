@@ -273,8 +273,8 @@ sub call_deflate {
 sub _do_inflate {
     my ($class, $method, $column, $value) = @_;
 #    warn "_do_inflate: $method, column=$column, value=$value\n";
-
-    my $callback = $class->schema_info->{columns}->{$column}->{$method};
+    my %columns = %{ $class->schema_info->{columns} };
+    my $callback = $columns{$column}->{$method};
     if (defined $callback) {
         $callback->($column, $value);
     } else {
