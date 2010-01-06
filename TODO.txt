@@ -18,11 +18,17 @@ Test #########################
 setup
 driver
 
-Method implementation #################
+Implementation #################
 # DBIx::Thin
+on_connect_do
 update_or_create
 search_with_pagenator
 search_with_pagenator_by_sql
+
+# DBIx::Thin::Profiler::StandardError
+
+# DBIx::Thin::SchemaGenerator
+GET 'defaults string_is_utf8' from config
 
 trigger ###################
 before_create
