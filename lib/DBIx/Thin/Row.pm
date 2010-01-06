@@ -8,15 +8,14 @@ use UNIVERSAL::require;
 
 use base qw(DBIx::Thin::Accessor);
 
-# TODO: implement
-# FETCH,STOREを実装するか？
-
+# TODO: implement FETCH, STORE?
 
 sub new {
     my ($class, %args) = @_;
     my $self = bless { %args }, $class;
 # TODO: implement other tables
 #    check_required_args([ qw(other_tables) ], \%args);
+    # Check this object has DBIx::Thin::Schema's methods
     $self->check_methods();
 
     if ($self->{_values}) {
@@ -75,9 +74,9 @@ sub _lazy_accessor {
                 # TODO: test
                 # TODO: unify to _row_call_inflate
                 $self->{_get_value_cached}->{$column} = $self->call_inflate($column, $value);
-                my $code = $self->get_extra_inflate_code($column);
-                if (defined $code) {
-                    $self->{_get_value_cached}->{$column} = $code->($column, $value);
+                my $inflate_code = $self->get_extra_inflate_code($column);
+                if (defined $inflate_code) {
+                    $self->{_get_value_cached}->{$column} = $inflate_code->($column, $value);
                 }
             }
 
@@ -97,7 +96,6 @@ sub get_value {
     # TODO: unify to _row_utf8_on
     $value = $self->utf8_on($column, $value);
     if ($self->is_extra_utf8_column($column)) {
-        # TODO: write test
         $value = $self->force_utf8_on($column, $value);
     }
 
@@ -139,8 +137,7 @@ sub set {
 
 sub is_extra_utf8_column {
     my ($self, $column) = @_;
-    my @utf8 = @{ $self->{_utf8} || [] };
-    return grep { $_ eq $column } @utf8 ? 1 : 0;
+    return (grep { $_ eq $column } @{ $self->{_utf8} || [] }) ? 1 : 0;
 }
 
 sub get_extra_inflate_code {
@@ -153,6 +150,15 @@ sub get_dirty_columns {
     my $self = shift;
     my %rows = map { $_ => $self->get_value($_) } keys %{$self->{_dirty_columns}};
     return %rows;
+}
+
+sub as_hash {
+    my ($self) = @_;
+    my %values = ();
+    for my $column (@{ $self->{_select_columns} }) {
+        $values{$column} = $self->$column;
+    }
+    return %values;
 }
 
 sub create {
@@ -269,9 +275,19 @@ Does C<get_value>, for all column values.
   my %data = $row->get_values;
 
 
+=head2 as_hash()
+
+Returns a hash contains all column data (with inflating).
+
+ my %hash = $row->as_hash;
+ ### (id => 123, name => 'hoge', ...)
+
+=cut
+
+
 =head2 set(%values)
 
-set columns data.
+Set columns data.
 
   $row->set($column => $value);
 

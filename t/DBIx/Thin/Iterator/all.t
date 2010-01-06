@@ -28,11 +28,22 @@ my $iterator = undef;
 {
     my @array = $iterator->as_array;
     for my $obj (@array) {
+        # delete unnessesary field
         $obj->{_dirty_columns} = {};
     }
 #    use Data::Dumper;
 #    print Dumper \@array;
     for my $i (0 .. $#data) {
         is_deeply($array[$i]->{_values}, $data[$i], "as_array ($i)");
+    }
+}
+
+# as_data_array
+{
+    my @array = $iterator->as_data_array;
+#    use Data::Dumper;
+#    print Dumper \@array;
+    for my $i (0 .. $#data) {
+        is_deeply($array[$i], $data[$i], "as_data_array ($i)");
     }
 }

@@ -24,6 +24,6 @@ my $user = Your::Model->find(
 );
 my %hash = $user->as_hash;
 
-is($user->created_at, $hash{created_at}, 'as_hash');
+is($hash{created_at}, $user->created_at, 'as_hash');
 
 

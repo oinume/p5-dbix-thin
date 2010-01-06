@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+use utf8;
 use FindBin::libs;
 use Test::Utils;
 use Test::More qw(no_plan);
@@ -24,17 +25,37 @@ my $iterator = $model->search(
 );
 ok($iterator->size >= 3, 'search');
 
+$model->create(
+    'user',
+    values => {
+        name => 'search-日本語',
+        email => 'test@test.com',
+        created_at => '2010-01-01 00:00:00',
+    },
+);
 my @select_expected = $model->search(
     'user',
-    select => [ 'id' ],
+    select => [ qw(id name created_at) ],
+    where => { name => { op => 'LIKE', value => 'search-日本語%' } },
     limit => 1,
 );
 my @select_actual = $model->search(
     'user',
-    select => [ { id => 'alias_id' } ],
+    select => [
+        { id => 'alias_id' },
+        { name => 'alias_name' },
+        { created_at => 'alias_created_at' },
+    ],
+    where => { name => { op => 'LIKE', value => 'search-日本語%' } },
     limit => 1,
 );
-is($select_expected[0]->id, $select_actual[0]->alias_id, 'search (select alias)');
+is($select_actual[0]->alias_id, $select_expected[0]->id, 'search (select alias)');
+is($select_actual[0]->alias_name, $select_expected[0]->name, 'search (select alias utf8)');
+is(
+    $select_actual[0]->alias_created_at,
+    $select_expected[0]->created_at,
+    'search (select alias inflate)'
+);
 
 my $order_by_iterator = $model->search(
     'user',

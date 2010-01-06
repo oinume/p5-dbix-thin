@@ -149,6 +149,32 @@ sub as_array {
     return @array;
 }
 
+=head2 as_data_array
+
+Converts the iterator to array data contains hashref (not object).
+
+=cut
+sub as_data_array {
+    my ($self) = @_;
+    $self->reset;
+
+    my $index = 0;
+    my @array = ();
+    while (my $o = $self->next) {
+        # TODO: might be bad performance
+        if (my $method = $o->can('as_hash')) {
+            $o = { $o->$method() };
+        }
+        $o->{__index__} = $index;
+        push @array, $o;
+        $index++;
+    }
+
+    # for $iterator->as_data_array called twice
+    $self->delegate(\@array);
+    return @array;
+}
+
 
 =head2 create_object
 

@@ -259,7 +259,8 @@ sub find_by_sql {
 sub search {
     my ($class, $table, %args) = @_;
     my $schema = $class->schema_class($table, 1);
-    my @select = defined $args{select} ? @{ $args{select} } : sort keys %{ $schema->schema_info->{columns} };
+    my %columns = %{ $schema->schema_info->{columns} };
+    my @select = defined $args{select} ? @{ $args{select} } : sort keys %columns;
     my $where = defined $args{where} ? $args{where} : {};
     my $order_by = defined $args{order_by} ? $args{order_by} : {};
     my $having = defined $args{having} ? $args{having} : {};
@@ -271,15 +272,31 @@ sub search {
     unless (@select) {
         croak "No 'select' columns";
     }
+
+    my %search_by_sql_options = (table => $table);
     for my $s (@select) {
         if (ref $s eq 'HASH') {
             # for aliases like:
             # select => [ { id => 'my_id' }, { name => 'my_name' }, ... ]
             my @keys = keys %{ $s };
+            my ($column, $alias) = ($keys[0], $s->{$keys[0]});
             unless (@keys) {
                 croak "Invalid 'select' attribute form (No hashref keys)";
             }
-            $statement->add_select($keys[0], $s->{$keys[0]});
+            $statement->add_select($column, $alias);
+
+            if ($columns{$column}) {
+                if ($schema->is_utf8_column($column)) {
+                    # enable utf8 for aliases
+                    $search_by_sql_options{utf8} ||= [];
+                    push @{ $search_by_sql_options{utf8} }, $alias;
+                }
+                if (defined $columns{$column}->{inflate}) {
+                    # inflate aliases
+                    $search_by_sql_options{inflate} ||= {};
+                    $search_by_sql_options{inflate}->{$alias} = $columns{$column}->{inflate};
+                }
+            }
         } else {
             # for normal style like: select => [ 'id', 'name', ... ]
             $statement->add_select($s, $s);
@@ -324,15 +341,28 @@ sub search {
         }
     }
 
-    my %options_args = (table => $table);
-    for my $key (qw(utf8 inflate)) {
-        $options_args{$key} = $options->{$key};
+    if (defined $options->{utf8}) {
+        unless (ref $options->{utf8} eq 'ARRAY') {
+            croak "options 'utf8' must be ARRAYREF";
+        }
+        $search_by_sql_options{utf8} ||= [];
+        push @{ $search_by_sql_options{utf8} }, @{ $options->{utf8} };
+    }
+
+    if (defined $options->{inflate}) {
+        unless (ref $options->{inflate} eq 'HASH') {
+            croak "options 'utf8' must be HASHREF";
+        }
+        $search_by_sql_options{inflate} ||= {};
+        while (my ($k, $v) = each %{ $options->{inflate} }) {
+            $search_by_sql_options{inflate}->{$k} = $v;
+        }
     }
 
     return $class->search_by_sql(
         sql => $statement->as_sql,
         bind => $statement->bind,
-        options => \%options_args,
+        options => \%search_by_sql_options,
     );
 }
 
