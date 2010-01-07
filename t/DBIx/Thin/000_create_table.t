@@ -13,7 +13,7 @@ my $dbh = $driver->dbh;
 my (undef, $d, undef, undef, undef) =
     DBI->parse_dsn($driver->{dsn}) or die "Can't parse DBI DSN";
 
-if ($d =~ /sqlite/) {
+if ($d =~ /sqlite/i) {
     for my $table (qw(user status)) {
         eval {
             $dbh->do("DROP TABLE $table");
