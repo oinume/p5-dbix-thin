@@ -15,6 +15,5 @@ TAGS
 cover_db
 ^\.
 TODO.txt
-your_project.sqlite3
-dbix_thin_test.sqlite3
+\.sqlite3$
 thin-generate-schema-config.pl
