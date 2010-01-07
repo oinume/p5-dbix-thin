@@ -1,5 +1,13 @@
 Revision history for Perl extension DBIx::Thin
 
+0.05 Fri Jan  8 03:44:13 JST 2010
+    - New feature: DBIx::Thin->{search,find} methods now accept 'select' alias.
+    - New feature: New methods implemented.
+        DBIx::Thin::Iterator#as_data_array
+        DBI::Thin::Row#as_hash
+    - Refactored test code for CPAN tests.
+    - Updated POD
+
 0.04 Tue Dec 29 20:37:30 JST 2009
     - thin-generate-schema.pl: now accept --config option.
       You can hide a password from a command line.
