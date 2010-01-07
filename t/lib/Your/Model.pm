@@ -10,13 +10,6 @@ use Your::Model::Schema::Inflate;
 my $dsn = $ENV{DBIX_THIN_DSN};
 unless (defined $dsn) {
     $dsn = 'DBI:SQLite:dbname=dbix_thin_test.sqlite3';
-
-    if (system("which sqlite3 > /dev/null") == 1) {
-        die 'sqlite3 must be installed';
-    }
-    unless (-e 'dbix_thin_test.sqlite3') {
-        system "sqlite3 dbix_thin_test.sqlite3 < t/create_tables_sqlite3.sql";
-    }
 }
 
 my $username = $ENV{DBIX_THIN_USERNAME} || 'root';
