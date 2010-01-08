@@ -752,7 +752,7 @@ __END__
 
 =head1 NAME
 
-DBIx::Thin - Lightweight ORMapper
+DBIx::Thin - A lightweight ORMapper
 
 =cut
 
@@ -852,7 +852,88 @@ DBIx::Thin - Lightweight ORMapper
  Your::Model->delete('user', 10);
 
 
-=head1 SUPPORTED DATABASE
+=head1 CONCEPT
+
+DBIx::Thin's conecept is very similar to L<DBIx::Skinny>'s, a simple ORMapper. You can write code other ORMappers when simple CRUD and if you execute a complex query, you can specify it directly by calling 'xxx_by_sql' method.
+
+Although the basic idea is the same, there are some differences between DBIx::Skinny and DBIx::Thin.
+
+=head2 Explicit interface
+
+DBIx::Thin has more explicit interface than DBIx::Skinny's one. In Skinny, you write below to select records.
+
+ my $itr = Your::Model->search(
+     'user',
+     { name => 'blur' }
+ );
+
+The 1st argument is table name and the 2nd one is 'where' conditions. In Thin, you write like this.
+
+ my $itr = Your::Model->search(
+     'user',
+     where => { name => 'blur' }
+ );
+
+That is a little redundant but explicit. Arguments of Thin's methods are mostly passed by hash based style like above. It's easily understand what kind of arguments are passed.
+
+
+=head2 Schema class and Row class are united
+
+In Skinny, recommended that you define schemas like 'Your::Model::Schema' as a single file.
+In Thin, schemas are defined as each class, and Row class and Schema class must be the same class for simplicity like this:
+
+ ### Your/Model/User.pm
+ package Your::Model::User;
+ use DBIx::Thin::Schema;
+ use base qw(DBIx::Thin::Row);
+ 
+ install_table 'user' => schema {
+     primary_key 'id';
+     defaults string_is_utf8 => 1;
+     columns 
+         id    => { type => Integer },
+         name  => { type => String },
+         email => { type => String, utf8 => 0 };
+ };
+
+ ### Your/Model/Status.pm
+ package Your::Model::Status;
+ use DBIx::Thin::Schema;
+ use base qw(DBIx::Thin::Row);
+ 
+ install_table 'status' => schema {
+     ...
+ };
+ 
+ ### code
+ my $user = Your::Model->find_by_pk('user', 100);
+ # $user is an instance of 'Your::Model::User'
+ 
+ my $status = Your::Model->find_by_pk('status', 1024);
+ # $status is an instance of 'Your::Model::Status'
+
+
+=head2 Inflating and utf8 flag definitions are not rule based
+
+Skinny's inflating and utf8 definitions are 'rule based', but Thin's one is not, it is basically column based like below:
+
+ install_table 'user' => schema {
+     primary_key 'id';
+     columns 
+         id    => { type => Integer },
+         name  => { type => String, utf8 => 1 }, # utf8 flag on
+         email => { type => String, utf8 => 0 }, # utf8 flag off
+         created_at => {
+             type => Datetime,
+             inflate => sub { ... }, # specify inflate code
+             deflate => sub { ... }, # specify deflate code
+         },
+ };
+
+Rule based definition may have unexpected side-effects, that's why Thin avoids rule based definition. Moreover, Thin's concept is explicit interface.
+
+
+=head1 SUPPORTED DATABASES
 
 =over 4
 
