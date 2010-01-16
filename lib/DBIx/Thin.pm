@@ -9,7 +9,7 @@ use DBIx::Thin::Driver;
 use DBIx::Thin::Schema;
 use DBIx::Thin::Utils qw(check_required_args);
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub import {
     my ($class, %args) = @_;
