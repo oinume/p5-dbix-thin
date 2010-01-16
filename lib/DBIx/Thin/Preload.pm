@@ -46,13 +46,23 @@ DBIx::Thin::Preload - Preload DBIx::Thin's related modules.
   # in your startup.pl file for mod_perl
   use DBIx::Thin::Preload;
   use Your::Model;
-  Your::Model->setup(
-      .....
-  );
 
 OR
 
   # in your httpd.conf
   PerlModule DBIx::Thin::Preload
+  PerlModule Your::Model
+
+=head1 DESCRIPTION
+
+DBIx::Thin::Preload enables COW(Copy On Write) on persistent environment, such as mod_perl, FastCGI, and so on.
+The module loads all DBIx::Thin's related modules when "use DBIx::Thi::Preload".
+It is recommended that you don't use the module in pure CGI.
 
 =cut
+
+# TODO:
+# DBIx::Thin::Preload qw(
+#    Driver::MySQL
+#    Schema::Inflate::Time::Piece
+#);
