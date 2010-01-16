@@ -125,6 +125,7 @@ use base qw(DBIx::Thin::Row);
 install_table '$table' => schema {
     primary_key '$primary_key';
 $columns
+}
 
 1;
 ...
