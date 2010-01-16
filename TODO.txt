@@ -20,6 +20,8 @@ driver
 
 Implementation #################
 # DBIx::Thin
+Rename delete -> delete_by_pk
+Rename delete_all -> delete
 on_connect_do
 update_or_create
 search_with_pagenator
