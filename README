@@ -1,6 +1,108 @@
-This is Perl module DBIx::Thin.
+This is Perl module DBIx::Thin. A lightweight ORMapper.
 
-INSTALLATION
+* CONCEPT
+
+DBIx::Thin's conecept is very similar to DBIx::Skinny's, a simple ORMapper. You can write code other ORMappers when simple CRUD and if you execute a complex query, you can specify it directly by calling 'xxx_by_sql' method.
+
+Although the basic idea is the same, there are some differences between DBIx::Skinny and DBIx::Thin. See perldoc for the differences.
+
+* SYNOPSIS
+
+ #-----------------------#
+ # Your/Model.pm
+ #-----------------------#
+ package Your::Model;
+ 
+ use DBIx::Thin;
+ DBIx::Thin->setup(
+     dsn => 'DBI:SQLite:your_project.sqlite3',
+     username => '',
+     password => '',
+ );
+ DBIx::Thin->load_defined_schemas;
+ 
+ 1;
+
+ #-----------------------#
+ # Your/Model/User.pm
+ # schema class for table 'user'
+ #-----------------------#
+ package Your::Model::User;
+ use DBIx::Thin::Schema;
+ use base qw(DBIx::Thin::Row);
+ 
+ install_table 'user' => schema {
+     primary_key 'id';
+     defaults string_is_utf8 => 1; # utf8 flag on
+     columns 
+         id    => { type => Integer },
+         name  => { type => String },
+         email => { type => String, utf8 => 0 }; # utf8 flag off
+ };
+ 
+ 1;
+
+ #-----------------------#
+ # Your/Model/Status.pm
+ # schema class for table 'status'
+ #-----------------------#
+ package Your::Model::Status;
+ use DBIx::Thin::Schema;
+ use base qw(DBIx::Thin::Row);
+ 
+ install_table 'status' => schema {
+     primary_key 'id',
+     defaults string_is_utf8 => 1;
+     columns 
+         id    => { type => Integer },
+         text  => { type => String },
+         created_at => { type => Datetime },
+ };
+ 
+ 1;
+
+ #-----------------------#
+ # in your script
+ #-----------------------#
+ use Your::Model;
+ 
+ ### insert a record
+ my $row = Your::Model->create(
+     'user',
+     values => {
+         name => 'oinume',
+         email => 'oinume_at_gmail.com',
+     }
+ );
+ 
+ ### select records
+ my $iterator = Your::Model->search(
+     'user',
+     where => { name => 'oinume' },
+     limit => 20,
+ );
+ while (my $row = $iterator->next) {
+     ...
+ }
+ 
+ ### update records
+ Your::Model->update(
+     'user',
+     values => { name => 'new_user' },
+     where => { name => 'oinume' }
+ );
+
+ ### delete records
+ Your::Model->delete_all(
+     'user',
+     where => { name => 'new_user' }
+ );
+
+ ### delete a record with primary key
+ Your::Model->delete('user', 10);
+
+
+* INSTALLATION
 
 DBIx::Thin installation is straightforward. If your CPAN shell is set up,
 you should just be able to do
@@ -16,12 +118,17 @@ Then install it:
 
     % make install
 
-DOCUMENTATION
+
+* DOCUMENTATION
 
 DBIx::Thin documentation is available as in POD. So you can do:
 
     % perldoc DBIx::Thin
 
 to read the documentation online with your favorite pager.
+
+* LICENSE
+
+Same as Perl itself.
 
 Kazuhiro Oinuma (id:oinume)
