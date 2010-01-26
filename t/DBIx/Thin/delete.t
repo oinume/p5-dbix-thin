@@ -17,13 +17,11 @@ for my $i (0 .. 2) {
     };
 }
 
-my $user = $model->create(
+$model->create_all('user', values => \@values);
+my $deleted_count = $model->delete(
     'user',
-    values => {
+    where => {
         name => 'delete-0',
-        email => 'delete-0@test.com',
-    }
+    },
 );
-
-my $deleted_count = $model->delete('user', $user->id);
 is($deleted_count, 1, 'delete');

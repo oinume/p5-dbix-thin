@@ -93,13 +93,13 @@ Although the basic idea is the same, there are some differences between DBIx::Sk
  );
 
  ### delete records
- Your::Model->delete_all(
+ Your::Model->delete(
      'user',
      where => { name => 'new_user' }
  );
 
  ### delete a record with primary key
- Your::Model->delete('user', 10);
+ Your::Model->delete_by_pk('user', 10);
 
 
 * INSTALLATION

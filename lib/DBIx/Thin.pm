@@ -262,50 +262,22 @@ sub search {
     my %columns = %{ $schema->schema_info->{columns} };
     my @select = defined $args{select} ? @{ $args{select} } : sort keys %columns;
     my $where = defined $args{where} ? $args{where} : {};
-    my $order_by = defined $args{order_by} ? $args{order_by} : {};
-    my $having = defined $args{having} ? $args{having} : {};
-    my $limit = defined $args{limit} ? $args{having} : undef;
-    my $offset = defined $args{offset} ? $args{having} : undef;
+    my $limit = defined $args{limit} ? $args{limit} : undef;
+    my $offset = defined $args{offset} ? $args{offset} : undef;
     my $options = defined $args{options} ? $args{options} : {};
 
     my $statement = $class->statement;
-    unless (@select) {
-        croak "No 'select' columns";
-    }
-
-    my %search_by_sql_options = (table => $table);
-    for my $s (@select) {
-        if (ref $s eq 'HASH') {
-            # for aliases like:
-            # select => [ { id => 'my_id' }, { name => 'my_name' }, ... ]
-            my @keys = keys %{ $s };
-            my ($column, $alias) = ($keys[0], $s->{$keys[0]});
-            unless (@keys) {
-                croak "Invalid 'select' attribute form (No hashref keys)";
-            }
-            $statement->add_select($column, $alias);
-
-            if ($columns{$column}) {
-                if ($schema->is_utf8_column($column)) {
-                    # enable utf8 for aliases
-                    $search_by_sql_options{utf8} ||= [];
-                    push @{ $search_by_sql_options{utf8} }, $alias;
-                }
-                if (defined $columns{$column}->{inflate}) {
-                    # inflate aliases
-                    $search_by_sql_options{inflate} ||= {};
-                    $search_by_sql_options{inflate}->{$alias} = $columns{$column}->{inflate};
-                }
-            }
-        } else {
-            # for normal style like: select => [ 'id', 'name', ... ]
-            $statement->add_select($s, $s);
-        }
-    }
-
+    my %by_sql_options = (table => $table);
+    $class->add_select(
+        statement => $statement,
+        schema => $schema,
+        select => \@select,
+        columns => \%columns,
+        by_sql_options => \%by_sql_options,
+    );
     $statement->from([ $table ]);
 
-    %{$where} && $class->add_wheres($statement, $where);
+    %{$where} && $class->add_wheres(statement => $statement, wheres => $where);
     if (defined $limit) {
         $statement->limit($limit);
     }
@@ -313,56 +285,32 @@ sub search {
         $statement->offset($offset);
     }
 
-    if (defined $args{order_by}) {
-        unless (ref($order_by) eq 'ARRAY') {
-            $order_by = [ $order_by ];
-        }
-
-        my @orders = ();
-        for my $term (@{ $order_by }) {
-            my ($column, $case);
-            if (ref($term) eq 'HASH') {
-                ($column, $case) = each %{ $term };
-            } else {
-                $column = $term;
-                $case = 'ASC';
-            }
-            push @orders, { column => $column, desc => $case };
-        }
-        $statement->order(\@orders);
-    }
+    $class->add_order_by(
+        statement => $statement,
+        order_by => $args{order_by},
+    );
 
     # TODO: group_by
 
-    if (defined $args{having}) {
-        # TODO: test
-        for my $column (keys %{ $having }) {
-            $statement->add_having($column => $having->{$column});
-        }
-    }
+    $class->add_having(
+        statement => $statement,
+        having => $args{having},
+    );
 
-    if (defined $options->{utf8}) {
-        unless (ref $options->{utf8} eq 'ARRAY') {
-            croak "options 'utf8' must be ARRAYREF";
-        }
-        $search_by_sql_options{utf8} ||= [];
-        push @{ $search_by_sql_options{utf8} }, @{ $options->{utf8} };
-    }
+    $class->set_utf8_option(
+        options => $options,
+        by_sql_options => \%by_sql_options,
+    );
 
-    if (defined $options->{inflate}) {
-        unless (ref $options->{inflate} eq 'HASH') {
-            croak "options 'utf8' must be HASHREF";
-        }
-        $search_by_sql_options{inflate} ||= {};
-        while (my ($k, $v) = each %{ $options->{inflate} }) {
-            $search_by_sql_options{inflate}->{$k} = $v;
-        }
-    }
+    $class->set_inflate_option(
+        options => $options,
+        by_sql_options => \%by_sql_options,
+    );
 
     return $class->search_by_sql(
         sql => $statement->as_sql,
         bind => $statement->bind,
-        options => \%search_by_sql_options,
+        options => \%by_sql_options,
     );
 }
 
@@ -406,11 +354,65 @@ sub search_by_sql {
     return wantarray ? $iterator->as_array : $iterator;
 }
 
-sub search_with_paginator {
-    # TODO: implement
+sub search_with_pager {
+    my ($class, $table, %args) = @_;
+    my $schema = $class->schema_class($table, 1);
+    my %columns = %{ $schema->schema_info->{columns} };
+    my @select = defined $args{select} ? @{ $args{select} } : sort keys %columns;
+    my $where = defined $args{where} ? $args{where} : {};
+    my $limit = defined $args{limit} ? $args{limit} : undef;
+    my $offset = defined $args{offset} ? $args{offset} : undef;
+    my $options = defined $args{options} ? $args{options} : {};
+
+    my $statement = $class->statement;
+    my %by_sql_options = (table => $table);
+    $class->add_select(
+        statement => $statement,
+        schema => $schema,
+        select => \@select,
+        columns => \%columns,
+        by_sql_options => \%by_sql_options,
+    );
+    $statement->from([ $table ]);
+
+    %{$where} && $class->add_wheres(statement => $statement, wheres => $where);
+    if (defined $limit) {
+        $statement->limit($limit);
+    }
+    if (defined $offset) {
+        $statement->offset($offset);
+    }
+
+    $class->add_order_by(
+        statement => $statement,
+        order_by => $args{order_by},
+    );
+
+    # TODO: group_by
+
+    $class->add_having(
+        statement => $statement,
+        having => $args{having},
+    );
+
+    $class->set_utf8_option(
+        options => $options,
+        by_sql_options => \%by_sql_options,
+    );
+
+    $class->set_inflate_option(
+        options => $options,
+        by_sql_options => \%by_sql_options,
+    );
+
+    return $class->search_by_sql(
+        sql => $statement->as_sql,
+        bind => $statement->bind,
+        options => \%by_sql_options,
+    );
 }
 
-sub search_by_sql_with_paginator {
+sub search_by_sql_with_pager {
     # TODO: implement
 }
 
@@ -549,7 +551,10 @@ sub update {
     }
 
     my $statement = $class->statement;
-    $class->add_wheres($statement, $args{where});
+    $class->add_wheres(
+        statement => $statement,
+        wheres => $args{where}
+    );
     push @bind, @{ $statement->bind };
 
     my $sql = "UPDATE $table SET " . join(', ', @set) . ' ' . $statement->as_sql_where;
@@ -595,7 +600,7 @@ sub update_or_create {
 }
 
 
-sub delete {
+sub delete_by_pk {
     my ($class, $table, $primary_key_value) = @_;
     my $schema = $class->schema_class($table, 1);
 # TODO:
@@ -604,7 +609,10 @@ sub delete {
     my $pk = $schema->schema_info->{primary_key};
     my $statement = $class->statement;
     $statement->from([ $table ]);
-    $class->add_wheres($statement, { $pk => $primary_key_value });
+    $class->add_wheres(
+        statement => $statement,
+        wheres => { $pk => $primary_key_value }
+    );
     
     my $sql = "DELETE " . $statement->as_sql;
     my $bind = $statement->bind;
@@ -620,17 +628,20 @@ sub delete {
     return $deleted;
 }
 
-sub delete_all {
+sub delete {
     my ($class, $table, %args) = @_;
     check_required_args([ qw(where) ], \%args);
     
     my $schema = $class->schema_class($table, 1);
 # TODO:
-#    $class->call_schema_trigger('pre_delete_all', $schema, $table, $where);
+#    $class->call_schema_trigger('pre_delete', $schema, $table, $where);
 
     my $statement = $class->statement;
     $statement->from([ $table ]);
-    $class->add_wheres($statement, $args{where});
+    $class->add_wheres(
+        statement => $statement,
+        wheres => $args{where}
+    );
 
     my $sql = sprintf "DELETE %s", $statement->as_sql;
     my $bind = $statement->bind;
@@ -638,7 +649,7 @@ sub delete_all {
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, $bind);
 
-#    $class->call_schema_trigger('post_delete_all', $schema, $table);
+#    $class->call_schema_trigger('post_delete', $schema, $table);
 
     my $deleted = $sth->rows;
     $driver->close_sth($sth);
@@ -726,6 +737,95 @@ sub statement {
 }
 
 
+sub add_select {
+    my ($class, %args) = @_;
+    my $statement = $args{statement};
+    my $schema = $args{schema};
+    my @select = @{ $args{select} };
+    my %columns = %{ $args{columns} };
+    my $by_sql_options = $args{by_sql_options};
+
+    unless (@select) {
+        croak "No 'select' columns";
+    }
+
+    for my $s (@select) {
+        if (ref $s eq 'HASH') {
+            # for aliases like:
+            # select => [ { id => 'my_id' }, { name => 'my_name' }, ... ]
+            my @keys = keys %{ $s };
+            my ($column, $alias) = ($keys[0], $s->{$keys[0]});
+            unless (@keys) {
+                croak "Invalid 'select' attribute form (No hashref keys)";
+            }
+            $statement->add_select($column, $alias);
+
+            if ($columns{$column}) {
+                if ($schema->is_utf8_column($column)) {
+                    # enable utf8 for aliases
+                    $by_sql_options->{utf8} ||= [];
+                    push @{ $by_sql_options->{utf8} }, $alias;
+                }
+                if (defined $columns{$column}->{inflate}) {
+                    # inflate aliases
+                    $by_sql_options->{inflate} ||= {};
+                    $by_sql_options->{inflate}->{$alias} = $columns{$column}->{inflate};
+                }
+            }
+        } else {
+            # for normal style like: select => [ 'id', 'name', ... ]
+            $statement->add_select($s, $s);
+        }
+    }
+}
+
+
+sub add_having {
+    my ($class, %args) = @_;
+    unless (defined $args{having}) {
+        return;
+    }
+
+    my $statement = $args{statement};
+    my $having = defined $args{having} ? $args{having} : {};
+    # TODO: test
+    for my $column (keys %{ $having }) {
+        $statement->add_having($column => $having->{$column});
+    }
+}
+
+sub set_utf8_option {
+    my ($class, %args) = @_;
+    my ($options, $by_sql_options) = ($args{options}, $args{by_sql_options });
+    unless (defined $options->{utf8}) {
+        return;
+    }
+
+    unless (ref $options->{utf8} eq 'ARRAY') {
+        croak "options 'utf8' must be ARRAYREF";
+    }
+    $by_sql_options->{utf8} ||= [];
+    push @{ $by_sql_options->{utf8} }, @{ $options->{utf8} };
+}
+
+
+sub set_inflate_option {
+    my ($class, %args) = @_;
+    my ($options, $by_sql_options) = ($args{options}, $args{by_sql_options });
+    unless (defined $options->{inflate}) {
+        return;
+    }
+
+    unless (ref $options->{inflate} eq 'HASH') {
+        croak "options 'utf8' must be HASHREF";
+    }
+    $by_sql_options->{inflate} ||= {};
+    while (my ($k, $v) = each %{ $options->{inflate} }) {
+        $by_sql_options->{inflate}->{$k} = $v;
+    }
+}
+
+
 sub call_schema_trigger {
     my ($class, $trigger, $schema, $table, $args) = @_;
     $schema->call_trigger($class, $table, $trigger, $args);
@@ -733,10 +833,39 @@ sub call_schema_trigger {
 
 
 sub add_wheres {
-    my ($class, $statement, $wheres) = @_;
+    my ($class, %args) = @_;
+    my ($statement, $wheres) = ($args{statement}, $args{wheres});
     for my $column (keys %{ $wheres }) {
         $statement->add_where($column => $wheres->{$column});
     }
+}
+
+
+sub add_order_by {
+    my ($class, %args) = @_;
+    unless (defined $args{order_by}) {
+        return;
+    }
+
+    my $statement = $args{statement};
+    my $order_by = defined $args{order_by} ? $args{order_by} : {};
+    unless (ref($order_by) eq 'ARRAY') {
+        $order_by = [ $order_by ];
+    }
+
+    my @orders = ();
+    for my $term (@{ $order_by }) {
+        my ($column, $case);
+        if (ref($term) eq 'HASH') {
+            ($column, $case) = each %{ $term };
+        } else {
+            $column = $term;
+            $case = 'ASC';
+        }
+        push @orders, { column => $column, desc => $case };
+    }
+
+    $statement->order(\@orders);
 }
 
 sub check_table {
@@ -843,13 +972,13 @@ DBIx::Thin - A lightweight ORMapper
  );
 
  ### delete records
- Your::Model->delete_all(
+ Your::Model->delete(
      'user',
      where => { name => 'new_user' }
  );
 
  ### delete a record with primary key
- Your::Model->delete('user', 10);
+ Your::Model->delete_by_pk('user', 10);
 
 
 =head1 CONCEPT
@@ -1230,6 +1359,51 @@ EXAMPLE
   );
 
 
+=head2 search_with_pager($table, %args)
+
+Returns an iterator and  or an array of selected records.
+
+ARGUMENTS
+
+  table : Table name for searching
+  args : HASH
+    select : select columns. ARRAYREF
+    where : HASHREF
+    order_by : ARRAYREF or HASHREF
+    having : HAVING
+    limit : max records number
+    offset : offset
+
+RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
+
+EXAMPLE
+
+  my ($pager, $iterator) = Your::Model->search_with_pager(
+      'user',
+      select => [ 'id' ], # or select => [ { id => 'id_alias' } ]
+      where => {
+          name => { op => 'LIKE', value => 'fuga%' }
+      },
+      order_by => [
+          { id => 'DESC' }
+      ],
+      page => 1,
+      limit => 20,
+  );
+  while (my $user = $iterator->next) {
+      print "id = ", $user->id, "\n";
+  }
+  
+  # In list context
+  my @users = Your::Model->search(
+      'user',
+      where => {
+          name => 'fuga',
+      }
+  );
+
+
+
 =head2 create($table, %args)
 
 Creates a new record.
@@ -1331,9 +1505,9 @@ ARGUMENTS
 RETURNS : Updated row count
 
 
-=head2 delete($table, $primary_key_value)
+=head2 delete_by_pk($table, $primary_key_value)
 
-Delete a new record.
+Delete a record with primary key value.
 
 ARGUMENTS
 
@@ -1344,10 +1518,10 @@ RETURNS : Deleted row count
 
 EXAMPLE
 
-  my $deleted = Your::Model->delete('user', 1);
+  my $deleted = Your::Model->delete_by_pk('user', 1);
 
 
-=head2 delete_all($table, %args)
+=head2 delete($table, %args)
 
 Delete records.
 
@@ -1361,7 +1535,7 @@ RETURNS : Deleted row count
 
 EXAMPLE
 
-  my $deleted_count = Your::Model->delete_all(
+  my $deleted_count = Your::Model->delete(
       'user',
       where => {
           name => 'oinume'

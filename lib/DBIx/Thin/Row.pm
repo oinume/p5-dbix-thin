@@ -195,7 +195,7 @@ sub delete {
     my $table = $self->table;
     my $where = $self->update_or_delete_condition($table);
     my $primary_key = $self->schema_info->{primary_key};
-    return $self->model->delete($table, $where->{$primary_key});
+    return $self->model->delete_by_pk($table, $where->{$primary_key});
 }
 
 sub update_or_delete_condition {
