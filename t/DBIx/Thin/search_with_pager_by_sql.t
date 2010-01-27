@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+
+use FindBin::libs;
+use Test::Utils;
+use Test::More qw(no_plan);
+use Your::Model;
+
+my $model = Your::Model->new;
+
+my $counter = 0;
+my @values = ();
+for my $i (0 .. 10) {
+    my $name = 'search_with_pager_by_sql-' . $counter++;
+    push @values, {
+        name => $name,
+        email => $name . '@test.com',
+    };
+}
+$model->create_all('user', values => \@values);
+
+my $expected_total_entires = $model->count_by_sql(
+    sql => "SELECT COUNT(*) AS c FROM user WHERE name LIKE ?",
+    bind => [ '%search_with_pager_by_sql-%' ],
+);
+my ($pager, $iterator) = $model->search_with_pager_by_sql(
+    sql => "SELECT * FROM user WHERE name LIKE ?",
+    bind => [ '%search_with_pager_by_sql-%' ],
+    entries_per_page => 3,
+    page => 2,
+);
+is($pager->total_entries, $expected_total_entires, 'search_with_pager_by_sql (total_entries)');
+is($pager->current_page, 2, 'search_with_pager_by_sql (current_page)');
+# TODO: more test.
+
+#use Data::Dumper;
+#print Dumper $pager;

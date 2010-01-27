@@ -12,7 +12,9 @@ my @PRELOAD_MODULES = qw(
    DBIx::Thin::Driver
    DBIx::Thin::Iterator
    DBIx::Thin::Iterator::Arrayref
+   DBIx::Thin::Iterator::Null
    DBIx::Thin::Iterator::StatementHandle
+   DBIx::Thin::Pager
    DBIx::Thin::Profiler
    DBIx::Thin::Row
    DBIx::Thin::Schema
