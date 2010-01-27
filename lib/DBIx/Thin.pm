@@ -40,13 +40,39 @@ sub setup {
     if ($caller eq 'DBIx::Thin') {
         $caller = caller 1;
     }
+
     my $driver = defined $args{driver} ?
         delete $args{driver} : DBIx::Thin::Driver->create(%args);
+
+    my $query_logger = undef;
+    if (defined $ENV{DBIX_THIN_QUERY_LOG}) {
+        $query_logger = sub {
+            my ($sql, $bind) = @_;
+            my $bind_str = '';
+            if (defined $bind && @{ $bind }) {
+                for my $v (@{ $bind }) {
+                    $bind_str .= (defined $v) ? "'$v', " : "undef, ";
+                }
+                chop $bind_str;
+                chop $bind_str;
+            }
+
+            my $log = <<"...";
+SQL ------------
+$sql
+BIND: ($bind_str)
+...
+
+            warn "$log\n";
+        };
+    }
+
     my $attributes = +{
         driver          => $driver,
         schemas         => {},
         profiler        => undef,
         profile_enabled => $ENV{DBIX_THIN_PROFILE} || 0,
+        query_logger    => $query_logger,
         klass           => $caller,
         active_transaction => 0,
         # TODO: implement
@@ -135,7 +161,8 @@ sub new {
 
     my $driver   = delete $attr->{driver};
     my $profiler = delete $attr->{profiler};
-    
+    my $query_logger = delete $attr->{query_logger};
+
     my $self = bless Storable::dclone($attr), $class;
     my $driver_clone = undef;
     if (keys %args) {
@@ -150,9 +177,12 @@ sub new {
 
     $self->attributes->{driver} = $driver_clone;
     $self->attributes->{profiler} = $profiler;
+    $self->attributes->{query_logger} = $query_logger;
+
     # get deleted attributes back
     $attr->{driver} = $driver;
     $attr->{profiler} = $profiler;
+    $attr->{query_logger} = $query_logger;
 
     return $self;
 }
@@ -200,6 +230,13 @@ sub profile {
     }
 }
 
+sub log_query {
+    my ($class, $sql, $bind) = @_;
+    if (my $logger = $class->attributes->{query_logger}) {
+        $logger->($sql, $bind);
+    }
+}
+
 sub driver { shift->attributes->{driver} }
 
 sub execute_select { shift->driver->execute_select(@_) }
@@ -237,7 +274,9 @@ sub find_by_sql {
     check_select_sql($args{sql});
 
     my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
-    $class->profile($sql, $bind);
+    $class->profile($sql, $bind); # TODO: refactoring
+    $class->log_query($sql, $bind);
+
     my $driver = $class->driver;
     my $sth = $driver->execute_select($sql, $bind);
     my $row = $sth->fetchrow_hashref;
@@ -321,7 +360,9 @@ sub search_by_sql {
     check_select_sql($args{sql});
 
     my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
-    $class->profile($sql, $bind);
+    $class->profile($sql, $bind); # TODO: refactoring
+    $class->log_query($sql, $bind);
+
     my $sth = $class->driver->execute_select($sql, $bind);
 
     my $table = $options->{table};
@@ -405,19 +446,153 @@ sub search_with_pager {
         by_sql_options => \%by_sql_options,
     );
 
-    return $class->search_by_sql(
+    my $statement_for_count = Storable::dclone($statement);
+    $statement_for_count->select([ 'COUNT(*)' ]);
+
+    return $class->search_with_pager_by_sql(
         sql => $statement->as_sql,
         bind => $statement->bind,
+        sql_for_count => $statement_for_count->as_sql,
+        bind_for_count => $statement_for_count->bind,
+        page => $args{page},
+        entries_per_page => $args{entries_per_page},
         options => \%by_sql_options,
     );
 }
 
-sub search_by_sql_with_pager {
-    # TODO: implement
+sub search_with_pager_by_sql {
+    my ($class, %args) = @_;
+    check_required_args([ qw(sql) ], \%args);
+    check_select_sql($args{sql});
+
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
+    my $page = $args{page};
+    my $entries_per_page = $args{entries_per_page};
+
+    my $sql_for_count = '';
+    my @bind_for_count = ();
+    if (defined $args{sql_for_count}) {
+        $sql_for_count = $args{sql_for_count};
+        @bind_for_count =
+            (defined $args{bind_for_count}) ? @{ $args{bind_for_count} } : @{ $bind };
+    } else {
+        # Generate counting sql by parsing given 'sql'
+        if ($sql =~ /^\s*SELECT.+?\s+FROM\s+(.+)$/is) {
+            $sql_for_count = "SELECT count(*) FROM $1";
+            $sql_for_count =~ s/ORDER\s+BY([^\)]+?)$//i;
+            @bind_for_count = @{ $bind };
+        } else {
+            croak "'sql' must be the form 'SELECT ... FROM ...' (Maybe failed to parse given SQL)";
+        }
+    }
+
+    # Get total entry count at first
+    $class->profile($sql_for_count, \@bind_for_count); # TODO: refactoring
+    $class->log_query($sql_for_count, \@bind_for_count);
+
+    my $sth = $class->driver->execute_select($sql_for_count, \@bind_for_count);
+    my $total_entries = $sth->fetchrow_array();
+    $sth->finish();
+
+    # If 'page' exceeds the max, set the last page to current.
+    DBIx::Thin::Pager->require or croak $@;
+    my (undef, $entries_per_page2, $current_page, undef) =
+        DBIx::Thin::Pager->validate_pager_data(
+            total_entries    => $total_entries,
+            entries_per_page => $entries_per_page,
+            current_page     => $page,
+        );
+
+    if ($total_entries == 0) {
+        # If no entries, returns a null pager and an iterator
+        DBIx::Thin::Iterator::Null->require or croak $@;
+        my $pager = DBIx::Thin::Pager->new(
+            total_entries    => $total_entries,
+            entries_per_page => $entries_per_page2,
+            current_page     => $current_page,
+        );
+        return ($pager, DBIx::Thin::Iterator::Null->new);
+    }
+
+    if ($entries_per_page2 > 0) {
+        # TODO: this is MySQL notation. we must adapt to other DBs.
+        $sql .= " LIMIT $entries_per_page2";
+        $sql .= " OFFSET " . ($current_page - 1) * $entries_per_page2;
+    }
+
+    $class->profile($sql, $bind);
+    $class->log_query($sql, $bind);
+
+    $sth = $class->driver->execute_select($sql, $bind);
+
+    my $table = $options->{table};
+    unless (defined $table) {
+        $table = $class->get_table($sql);
+    }
+
+    my %extra_args = ();
+    my $utf8 = $options->{utf8};
+    if (defined $utf8) {
+         (ref $utf8 ne 'ARRAY') && croak "options 'utf8' must be ARRAYREF";
+        $extra_args{utf8} = $utf8;
+    }
+    my $inflate = $options->{inflate};
+    if (defined $inflate) {
+        (ref $inflate ne 'HASH') && croak "options 'inflate' must be HASHREF";
+        $extra_args{inflate} = $inflate;
+    }
+
+    my $pager = DBIx::Thin::Pager->new(
+        total_entries    => $total_entries,
+        entries_per_page => $entries_per_page2,
+        current_page     => $current_page,
+    );
+
+    DBIx::Thin::Iterator::StatementHandle->require or croak $@;
+    my $iterator = DBIx::Thin::Iterator::StatementHandle->new(
+        sth => $sth,
+        # In DBIx::Thin, object_class is a schema class.
+        object_class => $class->schema_class($table),
+        # Used for $row->update or $row->delete.
+        model => $class,
+        %extra_args,
+    );
+
+# TODO: make the API?
+#    $iterator->{_pager} = $pager;
+    return ($pager, $iterator);
 }
+
+
+# TODO: POD
+sub count {
+    my ($class, %args) = @_;
+    # TODO: implement
+    croak "Not implemented yet.";
+}
+
+# TODO: POD
+sub count_by_sql {
+    my ($class, %args) = @_;
+    check_required_args([ qw(sql) ], \%args);
+    check_select_sql($args{sql});
+
+    my ($sql, $bind, $options) = ($args{sql}, $args{bind} || [], $args{options} || {});
+    $class->profile($sql, $bind);
+    $class->log_query($sql, $bind);
+
+    my $sth = $class->driver->execute_select($sql, $bind);
+
+    my @columns = $sth->fetchrow_array();
+    $sth->finish();
+
+    return (@columns) ? $columns[0] : 0;
+}
+
 
 sub find_or_create {
     # TODO: implement
+    croak "Not implemented yet.";
 }
 
 
@@ -461,6 +636,7 @@ sub create {
         $placeholder,
     );
     $class->profile($sql, \@bind);
+    $class->log_query($sql, \@bind);
 
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, \@bind);
@@ -498,6 +674,7 @@ sub create_by_sql {
 
     my ($sql, $bind) = ($args{sql}, $args{bind} || []);
     $class->profile($sql, $bind);
+    $class->log_query($sql, $bind);
 
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, $bind);
@@ -559,6 +736,7 @@ sub update {
 
     my $sql = "UPDATE $table SET " . join(', ', @set) . ' ' . $statement->as_sql_where;
     $class->profile($sql, \@bind);
+    $class->log_query($sql, \@bind);
 
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, \@bind);
@@ -577,6 +755,7 @@ sub update_by_sql {
     my ($sql, $bind, $options) = ($args{sql}, $args{bind}, $args{options});
     $options ||= {};
     $class->profile($sql, $bind);
+    $class->log_query($sql, $bind);
 
 # TODO: need schema?
 #    my $table = $options->{table};
@@ -617,6 +796,7 @@ sub delete_by_pk {
     my $sql = "DELETE " . $statement->as_sql;
     my $bind = $statement->bind;
     $class->profile($sql, $bind);
+    $class->log_query($sql, $bind);
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, $bind);
 
@@ -646,6 +826,7 @@ sub delete {
     my $sql = sprintf "DELETE %s", $statement->as_sql;
     my $bind = $statement->bind;
     $class->profile($sql, $bind);
+    $class->log_query($sql, $bind);
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, $bind);
 
@@ -665,7 +846,7 @@ sub delete_by_sql {
     my ($sql, $bind, $options) = ($args{sql}, $args{bind}, $args{options});
     $options ||= {};
     $class->profile($sql, $bind);
-
+    $class->log_query($sql, $bind);
     my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, $bind);
     my $deleted = $sth->rows;
@@ -731,7 +912,7 @@ sub placeholder {
 
 sub statement {
     my ($class, %args) = @_;
-    $args{thin} = $class;
+#    $args{thin} = $class;
     DBIx::Thin::Statement->require or croak $@;
     return DBIx::Thin::Statement->new(%args);
 }
@@ -1361,7 +1542,7 @@ EXAMPLE
 
 =head2 search_with_pager($table, %args)
 
-Returns an iterator and  or an array of selected records.
+Returns a pager and an iterator of selected records.
 
 ARGUMENTS
 
@@ -1371,10 +1552,10 @@ ARGUMENTS
     where : HASHREF
     order_by : ARRAYREF or HASHREF
     having : HAVING
-    limit : max records number
-    offset : offset
+    page : current page number. the default is '1'. SCALAR
+    entries_per_page : entries per page. the default is '20'. SCALAR
 
-RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
+RETURNS : a pager (L<DBIx::Thin::Pager) and an iterator(L<DBIx::Thin::Iterator>) of row objects for the table.
 
 EXAMPLE
 
@@ -1388,20 +1569,72 @@ EXAMPLE
           { id => 'DESC' }
       ],
       page => 1,
-      limit => 20,
+      entries_per_page => 10,
   );
+  my @pages = map { $_->{page} } $pager->as_navigation;
+  # --> 1 2 3 4 5 6 7 8 9 10 ...
   while (my $user = $iterator->next) {
       print "id = ", $user->id, "\n";
   }
   
-  # In list context
-  my @users = Your::Model->search(
-      'user',
-      where => {
-          name => 'fuga',
-      }
-  );
 
+
+=head2 search_with_pager_by_sql(%args)
+
+Returns a pager and an iterator of selected records with a raw SQL.
+
+ARGUMENTS
+
+  args : HASH
+    sql : SQL
+    bind : bind parameters. ARRAYREF
+    sql_for_count: SQL for SELECT COUNT(...).
+    bind_for_ccount : bind parameters for 'sql_for_count'. ARRAYREF
+    options : HASHREF
+      table : Table for selection (used for determining a mapped object)
+      utf8 : extra utf8 columns. ARRAYREF
+      inflate : extra inflate columns. HASHREF
+
+RETURNS : a pager (L<DBIx::Thin::Pager) and an iterator(L<DBIx::Thin::Iterator>) of row objects for the SQL.
+
+EXAMPLE
+
+  my ($pager, $iterator) = Your::Model->search_with_pager_by_sql(
+      sql => <<"EOS",
+  SELECT * FROM user
+  WHERE name LIKE ?
+  ORDER BY id DESC
+  EOS
+      bind => [ '%hoge%' ]
+      options => { table => 'user' },
+  );
+  my @pages = map { $_->{page} } $pager->as_navigation;
+  # --> 1 2 3 4 5 6 7 8 9 10 ...
+  while (my $user = $iterator->next) {
+      print "id = ", $user->id, "\n";
+  }
+  
+  
+  my ($pager, $iterator) = Your::Model->search_with_pager_by_sql(
+      sql => <<"...",
+  SELECT * FROM user
+  WHERE name LIKE ?
+  ORDER BY id DESC
+  ...
+      bind => [ '%hoge%' ],
+      sql_for_count => <<"...",
+  SELECT COUNT(*) FROM user
+  WHERE name LIKE ?
+  ORDER BY id DESC
+  ..
+      bind_for_count [ '%hoge%' ],
+      options => { table => 'user' },
+  );
+  my @pages = map { $_->{page} } $pager->as_navigation;
+  # --> 1 2 3 4 5 6 7 8 9 10 ...
+  while (my $user = $iterator->next) {
+      print "id = ", $user->id, "\n";
+  }
 
 
 =head2 create($table, %args)

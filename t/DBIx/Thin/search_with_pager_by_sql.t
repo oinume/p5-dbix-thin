@@ -29,6 +29,7 @@ my ($pager, $iterator) = $model->search_with_pager_by_sql(
     page => 2,
 );
 is($pager->total_entries, $expected_total_entires, 'search_with_pager_by_sql (total_entries)');
+is($pager->entries_per_page, 3, 'search_with_pager_by_sql (entries_per_page)');
 is($pager->current_page, 2, 'search_with_pager_by_sql (current_page)');
 # TODO: more test.
 

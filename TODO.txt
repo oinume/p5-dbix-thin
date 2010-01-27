@@ -20,8 +20,8 @@ driver
 
 Implementation #################
 # DBIx::Thin
-Rename delete -> delete_by_pk
-Rename delete_all -> delete
+Refactor create_row_object (named hash)
+search, find's utf8, inflate, table (don't use 'option' argument)
 on_connect_do
 update_or_create
 search_with_pagenator
