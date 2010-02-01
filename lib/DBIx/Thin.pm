@@ -291,7 +291,11 @@ sub find_by_sql {
         $table = $class->get_table($sql);
     }
 
-    return $class->create_row_object($class->schema_class($table), $row, $options);
+    return $class->create_row_object(
+        object_class => $class->schema_class($table),
+        row_data => $row,
+        options => $options
+    );
 }
 
 
@@ -648,7 +652,10 @@ sub create {
     if ($primary_key) {
         $values{$primary_key} = $last_insert_id;
     }
-    my $object = $class->create_row_object($schema, \%values, {});
+    my $object = $class->create_row_object(
+        object_class => $schema,
+        row_data => \%values,
+    );
 
 #    $schema->call_trigger(
 #        $class,
@@ -857,19 +864,21 @@ sub delete_by_sql {
 
 
 sub create_row_object {
-    my ($class, $object_class, $hashref, $options) = @_;
+    my ($class, %args) = @_;
+    my ($object_class, $row_data, $options) =
+        ($args{object_class}, $args{row_data}, $args{options});
     $options ||= {};
 
-    my %args = (
-        _values => $hashref,
+    my %new_args = (
+        _values => $row_data,
         _model => $class,
     );
     while (my ($k, $v) = each %{ $options }) {
-        $args{$k} = $v;
+        $new_args{$k} = $v;
     }
 
     $object_class->require or croak $@;
-    return $object_class->new(%args)->setup;
+    return $object_class->new(%new_args)->setup;
 }
 
 sub get_table {
