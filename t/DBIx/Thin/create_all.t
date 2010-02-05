@@ -20,6 +20,13 @@ for my $i (0 .. 2) {
 
 my $created_count = $model->create_all(
     'user',
-    values => \@values
+    values => \@values,
 );
 is($created_count, 3, 'create_all');
+
+$created_count = $model->create_all(
+    'user',
+    values => \@values,
+    ignore => 1,
+);
+is($created_count, 3, 'create_all (ignore)');

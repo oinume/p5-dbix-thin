@@ -274,20 +274,35 @@ sub sql_for_unixtime {
     return time();
 }
 
+=head2 insert_ignore_available
+
+Returns 1 if the driver accept 'INSERT IGNORE ...' statement.
+
+=cut
+sub insert_ignore_available { 0 }
+
+
 =head2 bulk_insert
 
 Interface for inserting multi rows.
 
 =cut
 sub bulk_insert {
-    my ($self, $model, $table, $values) = @_;
+    my ($self, %args) = @_;
+    my ($model, $table, $values, $ignore) =
+        ($args{model}, $args{table}, $args{values}, $args{ignore});
+
     my $dbh = $self->dbh;
     $dbh->begin_work;
 
     my $inserted = 0;
     for my $value ( @{$values} ) {
 # TODO: adjust trigger
-        $model->create($table, values => $value);
+        $model->create(
+            $table,
+            values => $value,
+#            ignore => $ignore,
+        );
         $inserted++;
     }
 

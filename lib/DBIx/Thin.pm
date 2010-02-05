@@ -632,9 +632,11 @@ sub create {
         push @bind, $schema->utf8_off($column, $values{$column});
     }
 
+    my $driver = $class->driver;
     my $placeholder = $class->placeholder(@columns);
     my $sql = sprintf(
-        "INSERT INTO %s\n (%s)\n VALUES(%s)",
+        "INSERT %sINTO %s\n (%s)\n VALUES (%s)",
+        ($driver->insert_ignore_available && $args{ignore}) ? 'IGNORE ' : '',
         $table,
         join(', ', @columns),
         $placeholder,
@@ -642,7 +644,6 @@ sub create {
     $class->profile($sql, \@bind);
     $class->log_query($sql, \@bind);
 
-    my $driver = $class->driver;
     my $sth = $driver->execute_update($sql, \@bind);
     my $last_insert_id = $driver->last_insert_id($sth, { table => $table });
     $driver->close_sth($sth);
@@ -701,7 +702,13 @@ sub create_all {
     
     my $driver = $class->driver;
     if (my $bulk_insert = $driver->can('bulk_insert')) {
-        return $bulk_insert->($driver, $class, $table, $args{values});
+        return $bulk_insert->(
+            $driver,
+            model => $class,
+            table => $table,
+            values => $args{values},
+            ignore => $args{ignore},
+        );
     }
     else {
         croak "The driver doesn't have 'bulk_insert' method.";

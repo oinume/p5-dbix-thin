@@ -44,3 +44,22 @@ my $user3 = $model->create(
     },
 );
 is($user3->get_raw_value('created_at'), '2009-09-30 13:59:10', 'create (deflate)');
+
+# check ignore
+SKIP: { 
+    if ($model->driver->insert_ignore_available) {
+        $model->create(
+            'user',
+            values => {
+                id => $user3->id,
+                name => $user3->name,
+                email => $user3->email,
+                created_at => $user3->created_at,
+            },
+            ignore => 1,
+        );
+        ok(1, 'create (ignore)');
+    } else {
+        skip("create (ignore) - a driver doesn't support 'INSERT IGNORE'");
+    }
+};

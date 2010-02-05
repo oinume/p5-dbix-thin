@@ -101,8 +101,9 @@ sub run {
     );
 
     my $primary_key = $schema_info->{primary_key};
-    my @fields = @{ $schema_info->{fields} || [] };
+    my $primary_key_statement = $primary_key ? qq{    primary_key '$primary_key';} : '';
 
+    my @fields = @{ $schema_info->{fields} || [] };
     my $columns = "    columns(\n";
     for my $f (@fields) {
         my $t = $f->{type};
@@ -123,7 +124,7 @@ use DBIx::Thin::Schema;
 use base qw(DBIx::Thin::Row);
 
 install_table '$table' => schema {
-    primary_key '$primary_key';
+$primary_key_statement
 $columns
 };
 

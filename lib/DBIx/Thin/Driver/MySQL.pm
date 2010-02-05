@@ -12,45 +12,50 @@ sub last_insert_id {
     return ($sth->{mysql_insertid} || $sth->{insertid});
 }
 
-sub sql_for_unixtime {
-    return "UNIX_TIMESTAMP()";
-}
+sub sql_for_unixtime { "UNIX_TIMESTAMP()" }
+
+sub insert_ignore_available { 1 }
 
 sub bulk_insert {
-    # TODO: implement
-    my ($self, $thin, $table, $args) = @_;
+#    my ($self, $thin, $table, $args) = @_;
+    my ($self, %args) = @_;
+    my ($model, $table, $values, $ignore) =
+        ($args{model}, $args{table}, $args{values}, $args{ignore});
 
-    my $schema = $thin->schema_class($table);
+    my $schema = $model->schema_class($table);
     my $inserted = 0;
     my (@columns, @bind);
-    for my $arg (@{$args}) {
+    for my $value (@{ $values }) {
+        # $value --> column => value hashref
         # deflate
-        for my $column (keys %{$arg}) {
-# TODO:
-            # $arg->{$column} = $schema->call_deflate($column, $arg->{$column});
-            $arg->{$column} = $schema->call_deflate($column, $arg->{$column});
+        for my $column (keys %{ $value }) {
+            $value->{$column} = $schema->call_deflate($column, $value->{$column});
         }
 
+# TODO: check this out
         if (scalar(@columns) == 0) {
-            for my $column (keys %{$arg}) {
+            for my $column (keys %{ $value }) {
                 push @columns, $column;
             }
         }
 
-        for my $column (keys %{$arg}) {
-# TODO: utf8_off
-            push @bind, $schema->utf8_off($column, $arg->{$column});
+        for my $column (keys %{$value}) {
+            push @bind, $schema->utf8_off($column, $value->{$column});
         }
+
         $inserted++;
     }
 
-    my $sql = "INSERT INTO $table\n";
+    my $ignore_phrase = $ignore ? ' IGNORE' : '';
+
+    my $sql = "INSERT$ignore_phrase INTO $table\n";
     $sql .= '(' . join(', ', @columns) . ')' . "\nVALUES ";
 
-    my $values = '(' . join(', ', ('?') x @columns) . ')' . "\n";
-    $sql .= join(',', ($values) x (scalar(@bind) / scalar(@columns)));
+    my $values_phrase = '(' . join(', ', ('?') x @columns) . ')' . "\n";
+    $sql .= join(',', ($values_phrase) x (scalar(@bind) / scalar(@columns)));
 
-    $thin->profile($sql, \@bind);
+    $model->profile($sql, \@bind);
+    $model->log_query($sql, \@bind);
     $self->execute_update($sql, \@bind);
 
     return $inserted;
