@@ -91,7 +91,7 @@ sub run {
 
     my %TYPES = (
         qr/^.*int.*$/ => 'Integer',
-        qr/^(double|float|decimal)$/ => 'Decimal',
+        qr/^(double.*|float.*|decimal.*)$/ => 'Decimal',
         qr/^(.*char.*|.*text.*|enum|set)$/ => 'String',
         qr/^(.*blob|binary)$/ => 'Binary',
         qr/^boolean$/ => 'Boolean',
