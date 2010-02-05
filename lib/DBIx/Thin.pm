@@ -1415,9 +1415,7 @@ EXAMPLE
       where => {
           name => 'hoge'
       },
-      order_by => {
-          id => 'DESC'
-      }
+      order_by => [ { name => 'ASC' }, { id => 'DESC' } ]
   );
   if ($user) {
       print "name = ", $user->name, "\n";
@@ -1478,9 +1476,7 @@ EXAMPLE
       where => {
           name => { op => 'LIKE', value => 'fuga%' }
       },
-      order_by => [
-          { id => 'DESC' }
-      ],
+      order_by => [ { name => 'ASC' }, { id => 'DESC' } ]
       limit => 20,
   );
   while (my $user = $iterator->next) {
@@ -1574,9 +1570,7 @@ EXAMPLE
       where => {
           name => { op => 'LIKE', value => 'fuga%' }
       },
-      order_by => [
-          { id => 'DESC' }
-      ],
+      order_by => [ { id => 'DESC' } ],
       page => 1,
       entries_per_page => 10,
   );
