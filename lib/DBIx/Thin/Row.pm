@@ -9,6 +9,7 @@ use UNIVERSAL::require;
 use base qw(DBIx::Thin::Accessor);
 
 # TODO: implement FETCH, STORE?
+# TODO: inflate/deflate timing should be documented.
 
 sub new {
     my ($class, %args) = @_;
@@ -87,6 +88,9 @@ sub _lazy_accessor {
 
 sub get_value {
     my ($self, $column) = @_;
+    unless (defined $column) {
+        croak "Argument 'column' required";
+    }
 
     my $value = $self->{_values}->{$column};
     unless (defined $value) {
@@ -113,6 +117,9 @@ sub get_values {
 
 sub get_raw_value {
     my ($self, $column) = @_;
+    unless (defined $column) {
+        croak "Argument 'column' required";
+    }
     return $self->{_values}->{$column};
 }
 
@@ -129,7 +136,7 @@ sub set {
     my ($self, %args) = @_;
 
     for my $column (keys %args) {
-        $self->{_values}->{$column} = $args{$column};
+        $self->{_values}->{$column} = $self->call_deflate($column, $args{$column});
         delete $self->{_get_value_cached}->{$column};
         $self->{_dirty_columns}->{$column} = 1;
     }
@@ -173,7 +180,7 @@ sub update {
 
     my %dirty = $self->get_dirty_columns;
     while (my ($k, $v) = each %dirty) {
-        next if (defined $values{$k});
+        next if (defined $values{$k}); # skip when an argument is given
         $values{$k} = $dirty{$k};
     }
 
@@ -181,13 +188,21 @@ sub update {
         return 0;
     }
 
-    my $where = $self->update_or_delete_condition($table);
+    my $where = $self->update_or_delete_condition($table);  # TODO: check primary key
     $self->set(%values);
-    return $self->model->update(
+    my $updated = $self->model->update(
         $table,
+        # TODO: check inflate/deflate timing
         values => \%values,
         where => $where
     );
+
+    while (my ($column, $value) = each %values) {
+        $self->{_values}->{$column} = $self->call_deflate($column, $value);
+        delete $self->{_get_value_cached}->{$column};
+    }
+
+    return $updated;
 }
 
 sub delete {
