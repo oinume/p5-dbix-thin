@@ -1048,6 +1048,10 @@ sub add_order_by {
         $order_by = [ $order_by ];
     }
 
+    unless (@{ $order_by }) {
+        return;
+    }
+
     my @orders = ();
     for my $term (@{ $order_by }) {
         my ($column, $case);
