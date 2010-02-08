@@ -33,6 +33,27 @@ sub import {
     }
 }
 
+sub query_logger {
+    my ($sql, $bind) = @_;
+    my $bind_str = '';
+    if (defined $bind && @{ $bind }) {
+        for my $v (@{ $bind }) {
+            $bind_str .= (defined $v) ? "'$v', " : "undef, ";
+        }
+        chop $bind_str;
+        chop $bind_str;
+    }
+
+    my $log = <<"...";
+@@@@@ SQL @@@@@
+$sql
+@@@@@ BIND @@@@
+$bind_str
+...
+
+    warn "$log\n";
+}
+
 sub setup {
     my ($class, %args) = @_;
 
@@ -44,35 +65,12 @@ sub setup {
     my $driver = defined $args{driver} ?
         delete $args{driver} : DBIx::Thin::Driver->create(%args);
 
-    my $query_logger = undef;
-    if (defined $ENV{DBIX_THIN_QUERY_LOG}) {
-        $query_logger = sub {
-            my ($sql, $bind) = @_;
-            my $bind_str = '';
-            if (defined $bind && @{ $bind }) {
-                for my $v (@{ $bind }) {
-                    $bind_str .= (defined $v) ? "'$v', " : "undef, ";
-                }
-                chop $bind_str;
-                chop $bind_str;
-            }
-
-            my $log = <<"...";
-SQL ------------
-$sql
-BIND: ($bind_str)
-...
-
-            warn "$log\n";
-        };
-    }
-
     my $attributes = +{
         driver          => $driver,
         schemas         => {},
         profiler        => undef,
         profile_enabled => $ENV{DBIX_THIN_PROFILE} || 0,
-        query_logger    => $query_logger,
+        query_logger    => defined $ENV{DBIX_THIN_QUERY_LOG} ? \&query_logger : undef,
         klass           => $caller,
         active_transaction => 0,
         # TODO: implement
@@ -249,7 +247,7 @@ sub execute_update { shift->driver->execute_update(@_) }
 ########################################
 sub find_by_pk {
     my ($class, $table, $pk) = @_;
-    my $primary_key = $class->schema_class($table)->schema_info->{primary_key};
+    my $primary_key = $class->schema_class($table, 1)->schema_info->{primary_key};
     return $class->search(
         $table,
         where => { $primary_key => $pk },
@@ -1470,7 +1468,7 @@ ARGUMENTS
     where : HASHREF
     order_by : ARRAYREF or HASHREF
     having : HAVING
-    limit : max records number
+    limit  : max records number
     offset : offset
 
 RETURNS : In scalar context, an iterator(L<DBIx::Thin::Iterator>) of row objects for the table. if no records, returns an empty iterator. (NOT undef)  In list context, an array of row objects.
