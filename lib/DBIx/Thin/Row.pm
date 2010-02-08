@@ -135,7 +135,13 @@ sub get_raw_values {
 sub set {
     my ($self, %args) = @_;
 
+    no strict 'refs';
+    no warnings 'redefine';
+    my $class = ref $self;
     for my $column (keys %args) {
+        # define accessor
+        *{"$class\::$column"} = $self->_lazy_accessor($column);
+        # set value
         $self->{_values}->{$column} = $self->call_deflate($column, $args{$column});
         delete $self->{_get_value_cached}->{$column};
         $self->{_dirty_columns}->{$column} = 1;
