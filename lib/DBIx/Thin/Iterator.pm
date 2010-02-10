@@ -176,6 +176,35 @@ sub as_data_array {
 }
 
 
+=head2 collect($callback)
+
+Applies given coderef and returns an array of the result of coderef.
+This method is just like Ruby's Enumerable#collect.
+
+EXAMPLE
+
+  my @user_ids = Your::Model->search(
+      'user',
+      select => [ 'id' ],
+  )->collect(sub { shift->id });
+
+=cut
+
+sub collect {
+    my ($self, $callback) = @_;
+    if (ref $callback ne 'CODE') {
+        croak "1st argument must be CODEREF.";
+    }
+
+    my @array = ();
+    while (my $o = $self->next) {
+        push @array, $callback->($o);
+    }
+
+    return @array;
+}
+
+
 =head2 create_object
 
 Creates an instance for 'object_class' when L<next|DBIx::Thin::Itertor/next> is called.

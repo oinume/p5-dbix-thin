@@ -47,3 +47,13 @@ my $iterator = undef;
         is_deeply($array[$i], $data[$i], "as_data_array ($i)");
     }
 }
+
+# collect
+{
+    my $iterator2 = DBIx::Thin::Iterator->create(
+        data => \@data,
+        object_class => 'Your::Model::User'
+    );
+    my @array = $iterator2->collect(sub { shift->name });
+    is_deeply(\@array, [ qw(tokyo osaka sapporo) ], 'collect');
+}
