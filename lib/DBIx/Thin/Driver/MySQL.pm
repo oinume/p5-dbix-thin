@@ -22,7 +22,7 @@ sub bulk_insert {
     my ($model, $table, $values, $ignore) =
         ($args{model}, $args{table}, $args{values}, $args{ignore});
 
-    my $schema = $model->schema_class($table);
+    my $schema = $model->schema_class($table, 1);
     my $inserted = 0;
     my (@columns, @bind);
     for my $value (@{ $values }) {
