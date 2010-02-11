@@ -23,9 +23,6 @@ as_navigation
 
 Implementation #################
 # DBIx::Thin
-count
-count_by_sql
-limit, offset should be dynamic.
 search, find's utf8, inflate, table (don't use 'option' argument)
 on_connect_do
 update_or_create
@@ -35,6 +32,9 @@ refactoring
 
 # DBIx::Thin::SchemaGenerator
 GET 'defaults string_is_utf8' from config
+
+# DBIx::Thin::Row
+group_by
 
 trigger ###################
 before_create
