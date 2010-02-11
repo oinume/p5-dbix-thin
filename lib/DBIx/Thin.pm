@@ -261,8 +261,9 @@ sub find {
     return $class->search(
         $table,
         where => $args{where},
+        order_by => $args{order_by},
         limit => 1,
-        options => $args{options} || {},
+        options => $args{options},
     )->first;
 }
 
@@ -567,14 +568,23 @@ sub search_with_pager_by_sql {
 }
 
 
-# TODO: POD
 sub count {
-    my ($class, %args) = @_;
-    # TODO: implement
-    croak "Not implemented yet.";
+    my ($class, $table, %args) = @_;
+    my $where = defined $args{where} ? $args{where} : {};
+
+    my $statement = $class->statement;
+    $statement->add_select('COUNT(*)');
+
+    $statement->from([ $table ]);
+
+    %{$where} && $class->add_wheres(statement => $statement, wheres => $where);
+
+    return $class->count_by_sql(
+        sql => $statement->as_sql,
+        bind => $statement->bind,
+    );
 }
 
-# TODO: POD
 sub count_by_sql {
     my ($class, %args) = @_;
     check_required_args([ qw(sql) ], \%args);
@@ -1444,8 +1454,9 @@ ARGUMENTS
     sql : SQL
     bind : bind parameters. ARRAYREF
     options : options. HASHREF
-      utf8 : extra utf8 columns ARRAYREF
-      inflate : extra inflate columns HASHREF
+      utf8 : extra utf8 columns. ARRAYREF
+      inflate : extra inflate columns. HASHREF
+      table : table name. SCALAR
 
 RETURNS : A row object for the table. if no records, returns undef.
 
@@ -1512,7 +1523,7 @@ ARGUMENTS
     sql : SQL
     bind : bind parameters. ARRAYREF
     options : HASHREF
-      table : Table for selection (used for determining a mapped object)
+      table : Table for selection (used for determining a mapped object). SCALAR
       utf8 : extra utf8 columns. ARRAYREF
       inflate : extra inflate columns. HASHREF
 
@@ -1648,6 +1659,55 @@ EXAMPLE
   while (my $user = $iterator->next) {
       print "id = ", $user->id, "\n";
   }
+
+
+=head2 count($table, %args)
+
+Returns a number of rows found. If no rows found, returns 0.
+
+ARGUMENTS
+
+  table : Table name for searching
+  args : HASH
+    where : HASHREF
+
+RETURNS : A number of rouws found.
+
+EXAMPLE
+
+  my $count = Your::Model->count(
+      'user',
+      where => {
+          name => 'hoge'
+      },
+  );
+  print "count = ", $count, "\n";
+
+
+=head2 count_by_sql(%args)
+
+Returns a number of rows found. If no rows found, returns 0.
+
+ARGUMENTS
+
+  args : HASH
+    sql : SQL
+    bind : bind parameters. ARRAYREF
+    options : options. HASHREF
+      table : Table name
+
+RETURNS : A number of rouws found.
+
+EXAMPLE
+
+  my $count = Your::Model->count_by_sql(
+      sql => <<"EOS",
+  SELECT COUNT(*) FROM user
+  WHERE email LIKE ?
+  EOS
+      bind => [ '%@gmail.com' ]
+  );
+  print "count = ", $count, "\n";
 
 
 =head2 create($table, %args)
