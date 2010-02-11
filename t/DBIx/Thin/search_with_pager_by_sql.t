@@ -22,7 +22,7 @@ my $expected_total_entires = $model->count_by_sql(
     sql => "SELECT COUNT(*) AS c FROM user WHERE name LIKE ?",
     bind => [ '%search_with_pager_by_sql-%' ],
 );
-my ($pager, $iterator) = $model->search_with_pager_by_sql(
+my ($iterator, $pager) = $model->search_with_pager_by_sql(
     sql => "SELECT * FROM user WHERE name LIKE ?",
     bind => [ '%search_with_pager_by_sql-%' ],
     entries_per_page => 3,

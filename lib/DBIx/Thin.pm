@@ -513,7 +513,8 @@ sub search_with_pager_by_sql {
             entries_per_page => $entries_per_page2,
             current_page     => $current_page,
         );
-        return ($pager, DBIx::Thin::Iterator::Null->new);
+        # TODO: test
+        return (DBIx::Thin::Iterator::Null->new, $pager);
     }
 
     if ($entries_per_page2 > 0) {
@@ -562,7 +563,7 @@ sub search_with_pager_by_sql {
 
 # TODO: make the API?
 #    $iterator->{_pager} = $pager;
-    return ($pager, $iterator);
+    return ($iterator, $pager);
 }
 
 
@@ -1569,11 +1570,11 @@ ARGUMENTS
     page : current page number. the default is '1'. SCALAR
     entries_per_page : entries per page. the default is '20'. SCALAR
 
-RETURNS : a pager (L<DBIx::Thin::Pager) and an iterator(L<DBIx::Thin::Iterator>) of row objects for the table.
+RETURNS : an iterator(L<DBIx::Thin::Iterator>) and a pager (L<DBIx::Thin::Pager) of row objects for the table.
 
 EXAMPLE
 
-  my ($pager, $iterator) = Your::Model->search_with_pager(
+  my ($iterator, $pager) = Your::Model->search_with_pager(
       'user',
       select => [ 'id' ], # or select => [ { id => 'id_alias' } ]
       where => {
@@ -1607,11 +1608,11 @@ ARGUMENTS
       utf8 : extra utf8 columns. ARRAYREF
       inflate : extra inflate columns. HASHREF
 
-RETURNS : a pager (L<DBIx::Thin::Pager) and an iterator(L<DBIx::Thin::Iterator>) of row objects for the SQL.
+RETURNS : an iterator(L<DBIx::Thin::Iterator>) and a pager (L<DBIx::Thin::Pager) of row objects for the SQL.
 
 EXAMPLE
 
-  my ($pager, $iterator) = Your::Model->search_with_pager_by_sql(
+  my ($iterator, $pager) = Your::Model->search_with_pager_by_sql(
       sql => <<"EOS",
   SELECT * FROM user
   WHERE name LIKE ?
@@ -1627,7 +1628,7 @@ EXAMPLE
   }
   
   
-  my ($pager, $iterator) = Your::Model->search_with_pager_by_sql(
+  my ($iterator, $pager) = Your::Model->search_with_pager_by_sql(
       sql => <<"...",
   SELECT * FROM user
   WHERE name LIKE ?
