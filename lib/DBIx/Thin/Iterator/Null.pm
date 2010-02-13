@@ -16,3 +16,5 @@ sub group_by { return () }
 sub delegate {
     # just override to avoid loop
 }
+
+1;
