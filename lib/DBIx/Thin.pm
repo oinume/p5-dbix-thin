@@ -7,7 +7,7 @@ use Storable ();
 use UNIVERSAL::require;
 use DBIx::Thin::Driver;
 use DBIx::Thin::Schema;
-use DBIx::Thin::Utils qw(check_required_args);
+use DBIx::Thin::Utils qw(check_required_args trim_string);
 
 our $VERSION = '0.07';
 
@@ -44,6 +44,7 @@ sub query_logger {
         chop $bind_str;
     }
 
+    $sql = trim_string($sql);
     my $log = <<"...";
 @@@@@ SQL @@@@@
 $sql
