@@ -6,22 +6,23 @@ use Carp qw(croak);
 use DBIx::Thin::Utils qw(check_required_args);
 use DBIx::Thin::Schema::Inflate qw(get_inflate_code get_deflate_code);
 use Storable qw(dclone);
+use UNIVERSAL::require;
 
 my ($is_utf8_function, $utf8_on_function, $utf8_off_function);
-BEGIN {
-    # TODO: updating code of DBIx::Skinny
+#BEGIN {
     if ($] <= 5.008000) {
-        require Encode;
+        Encode->require;
         $is_utf8_function = \&Encode::is_utf8;
         $utf8_on_function = \&Encode::_utf8_on;
         $utf8_off_function = \&Encode::_utf8_off;
     } else {
-        require utf8;
+        utf8->require;
         $is_utf8_function = \&utf8::is_utf8;
         $utf8_on_function = \&utf8::decode;
         $utf8_off_function = \&utf8::encode;
     }
-};
+#};
+
 
 my %table2schema_class = ();
 sub import {

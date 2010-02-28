@@ -17,11 +17,12 @@ my @PRELOAD_MODULES = qw(
    DBIx::Thin::Pager
    DBIx::Thin::Profiler
    DBIx::Thin::Row
-   DBIx::Thin::Schema
-   DBIx::Thin::Schema::Inflate
    DBIx::Thin::Statement
    DBIx::Thin::Utils
 );
+# TODO: Undefined subroutine &DBIx::Thin::Schema::require called at ...
+#   DBIx::Thin::Schema
+#   DBIx::Thin::Schema::Inflate
 
 sub import {
     for my $module (@PRELOAD_MODULES) {
