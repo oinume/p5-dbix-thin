@@ -2,6 +2,7 @@ package DBIx::Thin::Driver::MySQL;
 
 use strict;
 use warnings;
+use Carp qw(croak);
 
 use DBIx::Thin::Utils qw(check_required_args);
 
@@ -17,10 +18,13 @@ sub sql_for_unixtime { "UNIX_TIMESTAMP()" }
 sub insert_ignore_available { 1 }
 
 sub bulk_insert {
-#    my ($self, $thin, $table, $args) = @_;
     my ($self, %args) = @_;
     my ($model, $table, $values, $ignore) =
         ($args{model}, $args{table}, $args{values}, $args{ignore});
+
+    unless (@{ $values || [] }) {
+        croak "Argument 'values' are empty";
+    }
 
     my $schema = $model->schema_class($table, 1);
     my $inserted = 0;
@@ -47,7 +51,6 @@ sub bulk_insert {
     }
 
     my $ignore_phrase = $ignore ? ' IGNORE' : '';
-
     my $sql = "INSERT$ignore_phrase INTO $table\n";
     $sql .= '(' . join(', ', @columns) . ')' . "\nVALUES ";
 

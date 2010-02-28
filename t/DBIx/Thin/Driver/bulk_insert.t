@@ -25,9 +25,11 @@ my $inserted = $driver->bulk_insert(
 );
 ok($inserted, 'bulk_insert');
 
-$inserted = $driver->bulk_insert(
-    model => $model,
-    table => 'user',
-    values => [],
-);
-ok(!$inserted, 'bulk_insert (empty values)');
+eval {
+    $driver->bulk_insert(
+        model => $model,
+        table => 'user',
+        values => [],
+    );
+};
+ok($@, 'bulk_insert (empty values)');

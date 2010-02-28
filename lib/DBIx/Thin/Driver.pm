@@ -292,6 +292,10 @@ sub bulk_insert {
     my ($model, $table, $values, $ignore) =
         ($args{model}, $args{table}, $args{values}, $args{ignore});
 
+    unless (@{ $values || [] }) {
+        croak "Argument 'values' are empty";
+    }
+
     my $dbh = $self->dbh;
     $dbh->begin_work;
 
