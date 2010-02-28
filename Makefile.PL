@@ -16,8 +16,8 @@ build_requires 'Test::More' => '0.42';
 auto_include;
 auto_set_repository;
 
-author_tests('xt');
 tests_recursive;
+#author_tests('xt');
 
 install_script 'script/thin-generate-schema.pl';
 
