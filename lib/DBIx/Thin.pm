@@ -48,7 +48,7 @@ sub query_logger {
     my $log = <<"...";
 @@@@@ SQL @@@@@
 $sql
-@@@@@ BIND @@@@
+@@@@@ BIND @@@@@
 $bind_str
 ...
 
@@ -292,7 +292,7 @@ sub find_by_sql {
     }
 
     return $class->create_row_object(
-        object_class => $class->schema_class($table),
+        object_class => $class->schema_class($table, 1),
         row_data => $row,
         options => $options
     );
@@ -900,10 +900,15 @@ sub create_row_object {
 
 sub get_table {
     my ($class, $sql) = @_;
-    # TODO: parse SQL properly
-    if ($sql =~ /^.+from\s+([\w]+)\s*/i) {
+
+    my $s = $sql;
+    $s =~ s/\r\n/ /g;
+    $s =~ s/\r/ /g;
+    $s =~ s/\n/ /g;
+    if ($s =~ /^.+from\s+([\w]+)\s*/i) {
         return $1;
     }
+
     croak "Failed to extract table name from SQL\n$sql";
 }
 
