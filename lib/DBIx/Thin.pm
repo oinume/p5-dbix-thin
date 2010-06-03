@@ -1146,12 +1146,12 @@ DBIx::Thin - A lightweight ORMapper
  use base qw(DBIx::Thin::Row);
  
  install_table 'status' => schema {
-     primary_key 'id',
+     primary_key 'id';
      defaults string_is_utf8 => 1;
      columns 
          id    => { type => Integer },
          text  => { type => String },
-         created_at => { type => Datetime },
+         created_at => { type => Datetime };
  };
  
  1;
