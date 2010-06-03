@@ -1587,7 +1587,7 @@ ARGUMENTS
     page : current page number. the default is '1'. SCALAR
     entries_per_page : entries per page. the default is '20'. SCALAR
 
-RETURNS : an iterator(L<DBIx::Thin::Iterator>) and a pager (L<DBIx::Thin::Pager) of row objects for the table.
+RETURNS : an iterator(L<DBIx::Thin::Iterator>) and a pager (L<DBIx::Thin::Pager>) of row objects for the table.
 
 EXAMPLE
 
@@ -1625,7 +1625,7 @@ ARGUMENTS
       utf8 : extra utf8 columns. ARRAYREF
       inflate : extra inflate columns. HASHREF
 
-RETURNS : an iterator(L<DBIx::Thin::Iterator>) and a pager (L<DBIx::Thin::Pager) of row objects for the SQL.
+RETURNS : an iterator(L<DBIx::Thin::Iterator>) and a pager (L<DBIx::Thin::Pager>) of row objects for the SQL.
 
 EXAMPLE
 
